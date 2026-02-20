@@ -16,5 +16,9 @@ npm-debug.log*
 .vscode/
 .idea/
 
+# Environment variables (contain Firebase secrets — never commit)
+.env
+.env.local
+
 # Claude Code
 .claude/

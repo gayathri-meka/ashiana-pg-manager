@@ -1,58 +1,16 @@
 /**
- * Data Service Layer — localStorage implementation.
- *
- * All data access goes through this module.
- * To swap to a backend API later, replace only this file
- * while keeping the same exported function signatures.
- *
- * Future shape (backend version):
- *   getRooms()    → GET /api/rooms
- *   saveRooms()   → PUT /api/rooms  (or individual PATCH calls)
- *   getTenants()  → GET /api/tenants
- *   saveTenants() → PUT /api/tenants
+ * Pure logic layer — no storage concerns.
+ * All functions return new state; persistence is handled by the caller (Firestore).
  */
 
 import { INITIAL_ROOMS } from '../data/initialRooms.js'
 
-const ROOMS_KEY = 'ashiana_rooms'
-const TENANTS_KEY = 'ashiana_tenants'
-
-// ---------- Rooms ----------
-
-export function getRooms() {
-  const stored = localStorage.getItem(ROOMS_KEY)
-  if (stored) return JSON.parse(stored)
-  // First run: seed with initial config
-  localStorage.setItem(ROOMS_KEY, JSON.stringify(INITIAL_ROOMS))
-  return INITIAL_ROOMS
-}
-
-export function saveRooms(rooms) {
-  localStorage.setItem(ROOMS_KEY, JSON.stringify(rooms))
-}
-
-// ---------- Tenants ----------
-
-export function getTenants() {
-  const stored = localStorage.getItem(TENANTS_KEY)
-  return stored ? JSON.parse(stored) : []
-}
-
-export function saveTenants(tenants) {
-  localStorage.setItem(TENANTS_KEY, JSON.stringify(tenants))
-}
-
-// ---------- Helpers ----------
-
-/** Generate a simple unique ID (replace with UUID or server ID later) */
+/** Generate a simple unique ID */
 export function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 }
 
-/**
- * Add a new tenant and assign to a bed atomically.
- * Returns { rooms, tenants } with updated state.
- */
+/** Add a new tenant and assign to a bed. Returns { rooms, tenants }. */
 export function bookBed({ rooms, tenants, roomId, bedId, tenantData }) {
   const tenantId = generateId()
   const newTenant = {
@@ -66,29 +24,22 @@ export function bookBed({ rooms, tenants, roomId, bedId, tenantData }) {
     rentHistory: {},
     depositPaid: false,
     cautionDepositPaid: false,
-    active: true
+    active: true,
   }
 
-  const updatedRooms = rooms.map(room => {
-    if (room.id !== roomId) return room
-    return {
+  const updatedRooms = rooms.map(room =>
+    room.id !== roomId ? room : {
       ...room,
       beds: room.beds.map(bed =>
         bed.id === bedId ? { ...bed, occupied: true, tenantId } : bed
       )
     }
-  })
+  )
 
-  const updatedTenants = [...tenants, newTenant]
-  saveRooms(updatedRooms)
-  saveTenants(updatedTenants)
-  return { rooms: updatedRooms, tenants: updatedTenants }
+  return { rooms: updatedRooms, tenants: [...tenants, newTenant] }
 }
 
-/**
- * Vacate a bed: mark tenant inactive, clear bed.
- * Returns { rooms, tenants } with updated state.
- */
+/** Vacate a bed: mark tenant inactive, clear bed. Returns { rooms, tenants }. */
 export function vacateBed({ rooms, tenants, roomId, bedId }) {
   const room = rooms.find(r => r.id === roomId)
   const bed = room?.beds.find(b => b.id === bedId)
@@ -96,32 +47,45 @@ export function vacateBed({ rooms, tenants, roomId, bedId }) {
 
   const tenantId = bed.tenantId
 
-  const updatedRooms = rooms.map(r => {
-    if (r.id !== roomId) return r
-    return {
+  const updatedRooms = rooms.map(r =>
+    r.id !== roomId ? r : {
       ...r,
       beds: r.beds.map(b =>
         b.id === bedId ? { ...b, occupied: false, tenantId: null } : b
       )
     }
-  })
+  )
 
   const updatedTenants = tenants.map(t =>
     t.id === tenantId ? { ...t, active: false } : t
   )
 
-  saveRooms(updatedRooms)
-  saveTenants(updatedTenants)
   return { rooms: updatedRooms, tenants: updatedTenants }
 }
 
-/**
- * Update a tenant's details (name, contact, rent, deposit, etc.)
- */
+/** Update a tenant's details. Returns updated tenants array. */
 export function updateTenant({ tenants, tenantId, updates }) {
-  const updatedTenants = tenants.map(t =>
-    t.id === tenantId ? { ...t, ...updates } : t
-  )
-  saveTenants(updatedTenants)
-  return updatedTenants
+  return tenants.map(t => t.id === tenantId ? { ...t, ...updates } : t)
 }
+
+/**
+ * Read any data saved in localStorage from before cloud sync was added.
+ * Returns { rooms, tenants } or null if nothing found.
+ */
+export function getLocalLegacyData() {
+  const rooms = localStorage.getItem('ashiana_rooms')
+  const tenants = localStorage.getItem('ashiana_tenants')
+  if (!rooms) return null
+  return {
+    rooms: JSON.parse(rooms),
+    tenants: tenants ? JSON.parse(tenants) : [],
+  }
+}
+
+/** Clear localStorage after successful migration to Firestore. */
+export function clearLocalLegacyData() {
+  localStorage.removeItem('ashiana_rooms')
+  localStorage.removeItem('ashiana_tenants')
+}
+
+export { INITIAL_ROOMS }

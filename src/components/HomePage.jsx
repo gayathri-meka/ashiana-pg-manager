@@ -1,5 +1,15 @@
 import { FLOORS } from '../data/initialRooms.js'
 
+function GearIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  )
+}
+
 function HomeIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -67,7 +77,7 @@ function RoomCard({ room, onClick }) {
   )
 }
 
-export default function HomePage({ rooms, onRoomClick, onNewBooking, onVacate }) {
+export default function HomePage({ rooms, onRoomClick, onNewBooking, onVacate, onSettings }) {
   const totalBeds = rooms.reduce((s, r) => s + r.totalBeds, 0)
   const occupiedBeds = rooms.reduce((s, r) => s + r.beds.filter(b => b.occupied).length, 0)
   const vacantBeds = totalBeds - occupiedBeds
@@ -77,9 +87,17 @@ export default function HomePage({ rooms, onRoomClick, onNewBooking, onVacate })
 
       {/* ── Header ── */}
       <div
-        className="shrink-0 text-white text-center px-5 pb-7 pt-safe"
+        className="shrink-0 text-white text-center px-5 pb-7 pt-safe relative"
         style={{ background: 'linear-gradient(160deg, #14532d 0%, #16a34a 100%)' }}
       >
+        {/* Settings button */}
+        <button
+          onClick={onSettings}
+          className="absolute right-4 top-[calc(env(safe-area-inset-top)+12px)] text-white/60 active:text-white transition-colors p-1"
+        >
+          <GearIcon />
+        </button>
+
         {/* Brand */}
         <div className="flex items-center justify-center gap-2.5 mb-1">
           <HomeIcon />
