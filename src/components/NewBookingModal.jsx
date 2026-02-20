@@ -15,12 +15,10 @@ export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [error, setError] = useState('')
 
-  const roomOptions = rooms
   const currentRoom = rooms.find(r => r.id === selectedRoom)
   const emptyBeds = currentRoom ? currentRoom.beds.filter(b => !b.occupied) : []
 
   useEffect(() => {
-    // Reset bed if room changes
     if (!preselect.bedId) setSelectedBed('')
   }, [selectedRoom, preselect.bedId])
 
@@ -31,109 +29,123 @@ export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
     if (!selectedBed) return setError('Please select a bed.')
     if (!form.name.trim()) return setError('Name is required.')
     if (!form.joiningDate) return setError('Joining date is required.')
-
     onBook({ roomId: selectedRoom, bedId: selectedBed, tenantData: form })
     onClose()
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-      <div className="bg-white w-full max-w-lg rounded-t-2xl shadow-xl max-h-[92vh] flex flex-col">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300" />
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.55)' }}>
+      <div className="bg-white w-full max-w-[430px] rounded-t-3xl shadow-2xl max-h-[92vh] flex flex-col">
+
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
 
         {/* Header */}
-        <div className="px-4 py-3 border-b flex items-center justify-between">
-          <h2 className="text-lg font-bold">New Booking</h2>
-          <button onClick={onClose} className="text-gray-400 text-xl">✕</button>
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
+          <h2 className="text-[17px] font-bold">New Booking</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 active:bg-gray-200 text-sm"
+          >
+            ✕
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 px-4 py-4 space-y-4">
-          {/* Room select */}
+        {/* Scrollable form */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto scroll-hidden flex-1 px-5 py-4 space-y-4">
+
           <div>
-            <label className="text-xs text-gray-500 block mb-1 font-medium">Room *</label>
+            <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Room *</label>
             <select
               value={selectedRoom}
               onChange={e => setSelectedRoom(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
             >
               <option value="">Select room…</option>
-              {roomOptions.map(r => {
+              {rooms.map(r => {
                 const empty = r.beds.filter(b => !b.occupied).length
                 return (
                   <option key={r.id} value={r.id} disabled={empty === 0}>
-                    {r.id} — {r.floor} ({empty} empty)
+                    Room {r.id} — {r.floor} ({empty} available)
                   </option>
                 )
               })}
             </select>
           </div>
 
-          {/* Bed select */}
           <div>
-            <label className="text-xs text-gray-500 block mb-1 font-medium">Bed *</label>
+            <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Bed *</label>
             <select
               value={selectedBed}
               onChange={e => setSelectedBed(e.target.value)}
-              className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 disabled:opacity-40"
               disabled={!selectedRoom || emptyBeds.length === 0}
             >
               <option value="">Select bed…</option>
               {emptyBeds.map(b => (
                 <option key={b.id} value={b.id}>
-                  Bed {b.id.split('-').pop()} ({b.id})
+                  Bed {b.id.split('-').pop()}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Tenant fields */}
-          {[
-            { label: 'Name *', key: 'name', type: 'text', placeholder: 'Full name' },
-            { label: 'Contact', key: 'contact', type: 'tel', placeholder: '10-digit mobile' },
-            { label: 'Rent (₹/month) *', key: 'rent', type: 'number', placeholder: '0' },
-            { label: 'Deposit (₹)', key: 'deposit', type: 'number', placeholder: '0' },
-            { label: 'Caution Deposit (₹)', key: 'cautionDeposit', type: 'number', placeholder: '0' }
-          ].map(({ label, key, type, placeholder }) => (
-            <div key={key}>
-              <label className="text-xs text-gray-500 block mb-1 font-medium">{label}</label>
-              <input
-                type={type}
-                value={form[key]}
-                placeholder={placeholder}
-                onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-          ))}
+          {/* Divider */}
+          <div className="border-t border-gray-100 pt-2">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-3">Tenant Details</p>
+            <div className="space-y-4">
+              {[
+                { label: 'Full Name *', key: 'name', type: 'text', placeholder: 'Enter name' },
+                { label: 'Contact Number', key: 'contact', type: 'tel', placeholder: '10-digit mobile' },
+                { label: 'Rent / month (₹) *', key: 'rent', type: 'number', placeholder: '0' },
+                { label: 'Deposit (₹)', key: 'deposit', type: 'number', placeholder: '0' },
+                { label: 'Caution Deposit (₹)', key: 'cautionDeposit', type: 'number', placeholder: '0' },
+              ].map(({ label, key, type, placeholder }) => (
+                <div key={key}>
+                  <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">{label}</label>
+                  <input
+                    type={type}
+                    value={form[key]}
+                    placeholder={placeholder}
+                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                  />
+                </div>
+              ))}
 
-          <div>
-            <label className="text-xs text-gray-500 block mb-1 font-medium">Joining Date *</label>
-            <input
-              type="date"
-              value={form.joiningDate}
-              onChange={e => setForm(f => ({ ...f, joiningDate: e.target.value }))}
-              className="w-full border border-gray-300 rounded-xl px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Joining Date *</label>
+                <input
+                  type="date"
+                  value={form.joiningDate}
+                  onChange={e => setForm(f => ({ ...f, joiningDate: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                />
+              </div>
+            </div>
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+            <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3 rounded-xl">
+              {error}
+            </div>
           )}
 
-          <div className="flex gap-2 pb-2">
+          {/* Actions */}
+          <div className="flex gap-3 pb-safe pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-xl active:bg-gray-200 text-sm"
+              className="flex-1 bg-gray-100 text-gray-700 font-semibold py-4 rounded-2xl active:bg-gray-200 text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-green-600 text-white font-semibold py-3.5 rounded-xl active:bg-green-700 text-sm"
+              className="flex-1 text-white font-semibold py-4 rounded-2xl text-sm shadow-lg shadow-green-200 active:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
             >
               Confirm Booking
             </button>

@@ -4,10 +4,12 @@
 
 * {
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply text-gray-900;
+  background-color: #d6d3d1; /* stone-300 — visible outside phone on desktop */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overscroll-behavior: none;
 }
@@ -15,4 +17,22 @@ body {
 /* Prevent zoom on input focus on iOS */
 input, select, textarea {
   font-size: 16px;
+}
+
+/* Hide scrollbars but keep scrollable */
+.scroll-hidden {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area utilities */
+.pt-safe {
+  padding-top: max(40px, calc(env(safe-area-inset-top) + 16px));
+}
+
+.pb-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }

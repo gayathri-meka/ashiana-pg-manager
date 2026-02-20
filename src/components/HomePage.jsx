@@ -1,5 +1,24 @@
 import { FLOORS } from '../data/initialRooms.js'
 
+function HomeIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9,22 9,12 15,12 15,22" />
+    </svg>
+  )
+}
+
+function StatPill({ value, label, accent }) {
+  return (
+    <div className={`rounded-2xl py-3 px-2 text-center ${accent ? 'bg-white/25' : 'bg-white/15'}`}>
+      <div className="text-2xl font-bold leading-none">{value}</div>
+      <div className="text-[11px] text-green-100 mt-1 uppercase tracking-wide font-medium">{label}</div>
+    </div>
+  )
+}
+
 function getRoomStatus(room) {
   const occupied = room.beds.filter(b => b.occupied).length
   if (occupied === 0) return 'empty'
@@ -7,32 +26,42 @@ function getRoomStatus(room) {
   return 'partial'
 }
 
-const STATUS_COLORS = {
-  full: 'bg-green-500 text-white',
-  partial: 'bg-orange-400 text-white',
-  empty: 'bg-gray-300 text-gray-700'
+const STATUS_STYLES = {
+  full: {
+    card: 'bg-green-600 text-white shadow-green-200',
+    dot: 'bg-white/60',
+  },
+  partial: {
+    card: 'bg-amber-500 text-white shadow-amber-200',
+    dot: 'bg-white/60',
+  },
+  empty: {
+    card: 'bg-white text-gray-500 border border-gray-200',
+    dot: 'bg-gray-300',
+  },
 }
 
-const STATUS_LABELS = {
-  full: 'Full',
-  partial: 'Partial',
-  empty: 'Empty'
-}
+const STATUS_LABELS = { full: 'Full', partial: 'Partial', empty: 'Empty' }
 
 function RoomCard({ room, onClick }) {
   const status = getRoomStatus(room)
   const occupied = room.beds.filter(b => b.occupied).length
+  const styles = STATUS_STYLES[status]
+
   return (
     <button
       onClick={onClick}
-      className={`${STATUS_COLORS[status]} rounded-xl p-4 text-left shadow-sm active:opacity-80 transition-opacity w-full`}
+      className={`${styles.card} rounded-2xl p-4 text-left shadow-md active:scale-95 transition-transform w-full`}
     >
-      <div className="text-xl font-bold">{room.id}</div>
-      <div className="text-sm mt-1 opacity-90">
-        {occupied}/{room.totalBeds} beds
+      <div className="text-lg font-bold tracking-tight">{room.id}</div>
+      <div className="text-sm mt-1 opacity-80 font-medium">
+        {occupied}/{room.totalBeds}
       </div>
-      <div className="text-xs mt-1 font-medium opacity-75">
-        {STATUS_LABELS[status]}
+      <div className="mt-2 flex items-center gap-1">
+        <span className={`w-2 h-2 rounded-full ${styles.dot}`} />
+        <span className="text-[10px] uppercase tracking-widest font-semibold opacity-75">
+          {STATUS_LABELS[status]}
+        </span>
       </div>
     </button>
   )
@@ -41,65 +70,87 @@ function RoomCard({ room, onClick }) {
 export default function HomePage({ rooms, onRoomClick, onNewBooking, onVacate }) {
   const totalBeds = rooms.reduce((s, r) => s + r.totalBeds, 0)
   const occupiedBeds = rooms.reduce((s, r) => s + r.beds.filter(b => b.occupied).length, 0)
+  const vacantBeds = totalBeds - occupiedBeds
 
   return (
-    <div className="pb-32">
-      {/* Header */}
-      <div className="bg-green-600 text-white px-4 pt-12 pb-6 shadow-md">
-        <h1 className="text-2xl font-bold tracking-tight">Ashiana PG</h1>
-        <p className="text-green-100 text-sm mt-1">
-          {occupiedBeds}/{totalBeds} beds occupied
+    <div className="flex flex-col min-h-screen">
+
+      {/* ── Header ── */}
+      <div
+        className="shrink-0 text-white text-center px-5 pb-7 pt-safe"
+        style={{ background: 'linear-gradient(160deg, #14532d 0%, #16a34a 100%)' }}
+      >
+        {/* Brand */}
+        <div className="flex items-center justify-center gap-2.5 mb-1">
+          <HomeIcon />
+          <h1 className="text-[26px] font-bold tracking-tight">Ashiana PG</h1>
+        </div>
+        <p className="text-green-200 text-[11px] tracking-[0.18em] uppercase font-medium">
+          Home Away From Home
         </p>
+
+        {/* Stats */}
+        <div className="mt-5 grid grid-cols-3 gap-2.5">
+          <StatPill value={totalBeds} label="Total" />
+          <StatPill value={occupiedBeds} label="Occupied" />
+          <StatPill value={vacantBeds} label="Vacant" accent={vacantBeds > 0} />
+        </div>
       </div>
 
-      {/* Rooms by floor */}
-      <div className="px-4 mt-4 space-y-6">
-        {FLOORS.map(floor => {
-          const floorRooms = rooms.filter(r => r.floor === floor)
-          if (floorRooms.length === 0) return null
-          return (
-            <section key={floor}>
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
-                {floor}
-              </h2>
-              <div className="grid grid-cols-3 gap-3">
-                {floorRooms.map(room => (
-                  <RoomCard
-                    key={room.id}
-                    room={room}
-                    onClick={() => onRoomClick(room.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          )
-        })}
+      {/* ── Room list ── */}
+      <div className="flex-1 overflow-y-auto scroll-hidden px-4 pt-5 pb-28">
+        <div className="space-y-6">
+          {FLOORS.map(floor => {
+            const floorRooms = rooms.filter(r => r.floor === floor)
+            if (floorRooms.length === 0) return null
+            return (
+              <section key={floor}>
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400 mb-3 px-0.5">
+                  {floor}
+                </h2>
+                <div className="grid grid-cols-3 gap-3">
+                  {floorRooms.map(room => (
+                    <RoomCard
+                      key={room.id}
+                      room={room}
+                      onClick={() => onRoomClick(room.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="mt-6 flex gap-5 text-xs text-gray-400 px-0.5">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-600 inline-block shadow-sm" />
+            Full
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-sm" />
+            Partial
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-gray-200 inline-block border border-gray-300" />
+            Empty
+          </span>
+        </div>
       </div>
 
-      {/* Legend */}
-      <div className="px-4 mt-6 flex gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-green-500 inline-block" /> Full
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-orange-400 inline-block" /> Partial
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-gray-300 inline-block" /> Empty
-        </span>
-      </div>
-
-      {/* Floating action buttons */}
-      <div className="fixed bottom-6 right-4 flex flex-col gap-3 items-end z-10">
+      {/* ── Bottom action bar (fixed, aligned to phone container) ── */}
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white/95 backdrop-blur border-t border-gray-100 px-4 pt-3 pb-safe z-10 flex gap-3">
         <button
           onClick={onVacate}
-          className="bg-white border border-gray-300 text-gray-700 font-semibold px-5 py-3 rounded-full shadow-lg active:bg-gray-50 transition-colors text-sm"
+          className="flex-1 bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-2xl active:bg-gray-200 transition-colors text-sm"
         >
           Mark Vacated
         </button>
         <button
           onClick={onNewBooking}
-          className="bg-green-600 text-white font-semibold px-5 py-3 rounded-full shadow-lg active:bg-green-700 transition-colors text-sm"
+          className="flex-1 text-white font-semibold py-3.5 rounded-2xl active:opacity-90 transition-opacity text-sm shadow-lg shadow-green-200"
+          style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
         >
           + New Booking
         </button>
