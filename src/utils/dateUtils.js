@@ -1,19 +1,29 @@
 /**
  * Returns an array of "YYYY-MM" strings from joiningDate month → current month.
+ *
+ * NOTE: new Date('YYYY-MM-DD') parses as UTC midnight, which shifts the date
+ * backwards in timezones behind UTC (e.g. US) and causes non-midnight local
+ * times in timezones ahead of UTC (e.g. IST UTC+5:30). Comparing a non-midnight
+ * start against a midnight end breaks the while loop for single-month ranges.
+ * Fix: parse the date string directly to avoid any UTC→local conversion.
  */
 export function getMonthRange(joiningDate) {
-  const months = []
-  const start = new Date(joiningDate)
-  start.setDate(1)
+  if (!joiningDate) return []
+
+  // Parse YYYY-MM-DD components directly — no UTC conversion
+  const [y, m] = joiningDate.split('-').map(Number)
+  if (!y || !m) return []
 
   const now = new Date()
+  // Both dates created via (year, month, day) constructor → local midnight
+  let cur = new Date(y, m - 1, 1)
   const end = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  let cur = new Date(start)
+  const months = []
   while (cur <= end) {
-    const y = cur.getFullYear()
-    const m = String(cur.getMonth() + 1).padStart(2, '0')
-    months.push(`${y}-${m}`)
+    const cy = cur.getFullYear()
+    const cm = String(cur.getMonth() + 1).padStart(2, '0')
+    months.push(`${cy}-${cm}`)
     cur.setMonth(cur.getMonth() + 1)
   }
   return months
@@ -37,8 +47,10 @@ export function currentMonthKey() {
 /** Format date string for display */
 export function formatDate(dateStr) {
   if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+  // Parse components directly to avoid UTC-midnight → wrong local day
+  const [y, m, d] = String(dateStr).split('-').map(Number)
+  if (!y || !m || !d) return '-'
+  return new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 /** Format currency in INR */
