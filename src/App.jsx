@@ -16,6 +16,7 @@ import HomePage from './components/HomePage.jsx'
 import RoomDetails from './components/RoomDetails.jsx'
 import NewBookingModal from './components/NewBookingModal.jsx'
 import VacateModal from './components/VacateModal.jsx'
+import CollectionsModal from './components/CollectionsModal.jsx'
 
 const INITIAL_ADMIN = import.meta.env.VITE_INITIAL_ADMIN_EMAIL || 'gayathrimeka@gmail.com'
 const PG_DATA_REF = () => doc(db, 'pgData', 'main')
@@ -97,6 +98,7 @@ function AuthenticatedApp({ user }) {
   // Modals
   const [showNewBooking, setShowNewBooking] = useState(false)
   const [showVacate, setShowVacate] = useState(false)
+  const [showCollections, setShowCollections] = useState(false)
   const [preselect, setPreselect] = useState({ roomId: null, bedId: null })
 
   // ── 1. Watch admin status ────────────────────────────────────────────────
@@ -212,6 +214,11 @@ function AuthenticatedApp({ user }) {
     })
   }, [tenants])
 
+  const handleUpdateRooms = useCallback(async (newRooms) => {
+    setRooms(newRooms)
+    await updateDoc(PG_DATA_REF(), { rooms: newRooms, updatedAt: serverTimestamp() })
+  }, [])
+
   // ── Modal helpers ─────────────────────────────────────────────────────────
   const openNewBooking = useCallback(({ roomId = null, bedId = null } = {}) => {
     setPreselect({ roomId, bedId })
@@ -248,7 +255,11 @@ function AuthenticatedApp({ user }) {
       >
         {/* ── Page routing ── */}
         {showSettings ? (
-          <SettingsPage onBack={() => setShowSettings(false)} />
+          <SettingsPage
+            onBack={() => setShowSettings(false)}
+            rooms={rooms}
+            onUpdateRooms={handleUpdateRooms}
+          />
         ) : currentRoom ? (
           <RoomDetails
             room={activeRoom}
@@ -261,10 +272,12 @@ function AuthenticatedApp({ user }) {
         ) : (
           <HomePage
             rooms={rooms}
+            tenants={tenants}
             onRoomClick={(roomId) => setCurrentRoom(roomId)}
             onNewBooking={() => openNewBooking()}
             onVacate={() => openVacate()}
             onSettings={() => setShowSettings(true)}
+            onCollections={() => setShowCollections(true)}
           />
         )}
 
@@ -284,6 +297,13 @@ function AuthenticatedApp({ user }) {
             preselect={preselect}
             onVacate={handleVacateBed}
             onClose={() => setShowVacate(false)}
+          />
+        )}
+        {showCollections && (
+          <CollectionsModal
+            tenants={tenants}
+            onUpdateTenant={handleUpdateTenant}
+            onClose={() => setShowCollections(false)}
           />
         )}
       </div>

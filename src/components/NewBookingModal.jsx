@@ -22,6 +22,14 @@ export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
     if (!preselect.bedId) setSelectedBed('')
   }, [selectedRoom, preselect.bedId])
 
+  useEffect(() => {
+    if (!selectedBed || !currentRoom) return
+    const bed = currentRoom.beds.find(b => b.id === selectedBed)
+    if (bed?.defaultRent) {
+      setForm(f => ({ ...f, rent: String(bed.defaultRent) }))
+    }
+  }, [selectedBed, currentRoom])
+
   function handleSubmit(e) {
     e.preventDefault()
     setError('')

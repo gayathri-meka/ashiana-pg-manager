@@ -15,7 +15,7 @@ function Avatar({ email }) {
   )
 }
 
-export default function SettingsPage({ onBack }) {
+export default function SettingsPage({ onBack, rooms = [], onUpdateRooms }) {
   const { user, signOut } = useAuth()
   const [admins, setAdmins] = useState([])
   const [loadingAdmins, setLoadingAdmins] = useState(true)
@@ -187,6 +187,65 @@ export default function SettingsPage({ onBack }) {
             )}
           </div>
         </section>
+
+        {/* ── Bed Defaults section ── */}
+        {rooms.length > 0 && (
+          <section className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-4 pt-4 pb-3 border-b border-gray-50">
+              <h2 className="text-sm font-bold text-gray-900">Bed Defaults</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Set a default rent for each bed. New bookings will pre-fill this amount.
+              </p>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {rooms.map(room => (
+                <div key={room.id}>
+                  <div className="px-4 py-2 bg-gray-50/60">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                      Room {room.id} · {room.floor}
+                    </p>
+                  </div>
+                  {room.beds.map((bed, bedIdx) => {
+                    const bedNum = bed.id.split('-').pop()
+                    return (
+                      <div key={bed.id} className="flex items-center gap-3 px-4 py-3">
+                        <span className="text-sm text-gray-700 font-medium w-14 shrink-0">
+                          Bed {bedNum}
+                        </span>
+                        <div className="flex-1 flex items-center gap-1.5">
+                          <span className="text-sm text-gray-400">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            defaultValue={bed.defaultRent ?? ''}
+                            placeholder="No default"
+                            onBlur={e => {
+                              const val = e.target.value.trim()
+                              const parsed = val === '' ? null : Number(val)
+                              if (parsed === bed.defaultRent) return
+                              const newRooms = rooms.map(r => {
+                                if (r.id !== room.id) return r
+                                return {
+                                  ...r,
+                                  beds: r.beds.map((b, bi) =>
+                                    bi === bedIdx ? { ...b, defaultRent: parsed } : b
+                                  )
+                                }
+                              })
+                              onUpdateRooms?.(newRooms)
+                            }}
+                            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                          />
+                          <span className="text-xs text-gray-400 shrink-0">/mo</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Account section ── */}
         <section className="bg-white rounded-2xl shadow-sm overflow-hidden">

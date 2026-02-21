@@ -7,7 +7,8 @@ function generateBeds(roomId, totalBeds) {
   return Array.from({ length: totalBeds }, (_, i) => ({
     id: `${roomId}-${i + 1}`,
     occupied: false,
-    tenantId: null
+    tenantId: null,
+    defaultRent: null
   }))
 }
 

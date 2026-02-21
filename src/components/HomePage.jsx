@@ -1,4 +1,5 @@
 import { FLOORS } from '../data/initialRooms.js'
+import { currentMonthKey, formatMonth, formatCurrency } from '../utils/dateUtils.js'
 
 function GearIcon() {
   return (
@@ -77,10 +78,17 @@ function RoomCard({ room, onClick }) {
   )
 }
 
-export default function HomePage({ rooms, onRoomClick, onNewBooking, onVacate, onSettings }) {
+export default function HomePage({ rooms, tenants, onRoomClick, onNewBooking, onVacate, onSettings, onCollections }) {
   const totalBeds = rooms.reduce((s, r) => s + r.totalBeds, 0)
   const occupiedBeds = rooms.reduce((s, r) => s + r.beds.filter(b => b.occupied).length, 0)
   const vacantBeds = totalBeds - occupiedBeds
+
+  const thisMonth = currentMonthKey()
+  const activeTenants = (tenants || []).filter(t => t.active)
+  const paidCount = activeTenants.filter(t => (t.rentHistory || {})[thisMonth]).length
+  const thisMonthCollected = activeTenants
+    .filter(t => (t.rentHistory || {})[thisMonth])
+    .reduce((s, t) => s + (t.rent || 0), 0)
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -112,6 +120,23 @@ export default function HomePage({ rooms, onRoomClick, onNewBooking, onVacate, o
           <StatPill value={totalBeds} label="Total" />
           <StatPill value={occupiedBeds} label="Occupied" />
           <StatPill value={vacantBeds} label="Vacant" accent={vacantBeds > 0} />
+        </div>
+
+        {/* Collections strip */}
+        <div className="mt-3 flex items-center justify-between bg-white/15 rounded-2xl px-4 py-3">
+          <div className="text-left">
+            <p className="text-[10px] text-green-200 font-semibold uppercase tracking-widest">
+              {formatMonth(thisMonth)} · Collections
+            </p>
+            <p className="text-xl font-bold text-white">{formatCurrency(thisMonthCollected)}</p>
+            <p className="text-xs text-green-200">{paidCount} of {activeTenants.length} paid</p>
+          </div>
+          <button
+            onClick={onCollections}
+            className="bg-white/20 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl active:bg-white/30"
+          >
+            Details →
+          </button>
         </div>
       </div>
 
