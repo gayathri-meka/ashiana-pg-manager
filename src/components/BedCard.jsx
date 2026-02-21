@@ -85,11 +85,12 @@ function ThisMonthRent({ tenant, onUpdate }) {
 }
 
 // ── Occupied bed ─────────────────────────────────────────────────────────────
-function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
+function OccupiedBed({ bed, tenant, allTenants, onVacate, onClear, onUpdateTenant }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [rentPrompt, setRentPrompt] = useState(false)
   const [showRentHistory, setShowRentHistory] = useState(false)
+  const [clearing, setClearing] = useState(false)
 
   const thisMonth = currentMonthKey()
   const currentRent = getRentForMonth(tenant, thisMonth)
@@ -355,6 +356,37 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
                 Vacate
               </button>
             </div>
+
+            {/* Clear booking (mistake correction) */}
+            {clearing ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 mt-2 space-y-2">
+                <p className="text-xs font-semibold text-gray-700">Remove this booking?</p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Deletes the tenant record entirely. Use only to fix a mistake.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setClearing(false)}
+                    className="flex-1 bg-white border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl text-xs active:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => onClear(bed.id)}
+                    className="flex-1 bg-gray-700 text-white font-semibold py-2.5 rounded-xl text-xs active:bg-gray-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setClearing(true)}
+                className="w-full text-center text-[11px] text-gray-300 font-semibold mt-1 py-1 active:text-gray-500"
+              >
+                Clear booking (mistake)
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -373,7 +405,7 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
 }
 
 // ── Export ───────────────────────────────────────────────────────────────────
-export default function BedCard({ bed, tenants, onAddBooking, onVacate, onUpdateTenant }) {
+export default function BedCard({ bed, tenants, onAddBooking, onVacate, onClear, onUpdateTenant }) {
   const tenant = bed.tenantId ? tenants.find(t => t.id === bed.tenantId) : null
 
   if (!bed.occupied || !tenant) {
@@ -386,6 +418,7 @@ export default function BedCard({ bed, tenants, onAddBooking, onVacate, onUpdate
       tenant={tenant}
       allTenants={tenants}
       onVacate={onVacate}
+      onClear={onClear}
       onUpdateTenant={onUpdateTenant}
     />
   )

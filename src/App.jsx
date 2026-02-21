@@ -7,6 +7,7 @@ import { useAuth } from './context/AuthContext.jsx'
 import {
   bookBed, bookRoom as bookRoomService,
   vacateBed, vacateRoom as vacateRoomService,
+  clearBed, clearRoom,
   updateTenant,
   getLocalLegacyData, clearLocalLegacyData, INITIAL_ROOMS
 } from './services/dataService.js'
@@ -216,6 +217,20 @@ function AuthenticatedApp({ user }) {
     await saveToCloud(r, t)
   }, [rooms, tenants])
 
+  const handleClearBed = useCallback(async ({ roomId, bedId }) => {
+    const { rooms: r, tenants: t } = clearBed({ rooms, tenants, roomId, bedId })
+    setRooms(r)
+    setTenants(t)
+    await saveToCloud(r, t)
+  }, [rooms, tenants])
+
+  const handleClearRoom = useCallback(async ({ roomId }) => {
+    const { rooms: r, tenants: t } = clearRoom({ rooms, tenants, roomId })
+    setRooms(r)
+    setTenants(t)
+    await saveToCloud(r, t)
+  }, [rooms, tenants])
+
   const handleUpdateTenant = useCallback(async ({ tenantId, updates }) => {
     const updated = updateTenant({ tenants, tenantId, updates })
     setTenants(updated)
@@ -286,6 +301,8 @@ function AuthenticatedApp({ user }) {
             onUpdateTenant={handleUpdateTenant}
             onBookRoom={openRoomBooking}
             onVacateRoom={handleVacateRoom}
+            onClearBed={handleClearBed}
+            onClearRoom={handleClearRoom}
           />
         ) : (
           <HomePage

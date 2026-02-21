@@ -66,7 +66,7 @@ function ThisMonthRent({ tenant, onUpdate }) {
 
 // ── Room Booking Card ────────────────────────────────────────────────────────
 
-function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onUpdateTenant }) {
+function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onClearRoom, onUpdateTenant }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [rentPrompt, setRentPrompt] = useState(false)
@@ -74,6 +74,7 @@ function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onUpdateTenan
   const [vacateDate, setVacateDate] = useState(new Date().toISOString().split('T')[0])
   const [vacateConfirmed, setVacateConfirmed] = useState(false)
   const [showRentHistory, setShowRentHistory] = useState(false)
+  const [clearing, setClearing] = useState(false)
 
   const thisMonth = currentMonthKey()
   const currentRent = getRentForMonth(tenant, thisMonth)
@@ -266,6 +267,30 @@ function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onUpdateTenan
               <ThisMonthRent tenant={tenant} onUpdate={updates => onUpdateTenant({ tenantId: tenant.id, updates })} />
             </div>
 
+            {/* Clear room booking (mistake correction) */}
+            {clearing && (
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 mb-3 space-y-2">
+                <p className="text-xs font-semibold text-gray-700">Remove this room booking?</p>
+                <p className="text-[11px] text-gray-400 leading-relaxed">
+                  Deletes the tenant record entirely. Use only to fix a mistake.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setClearing(false)}
+                    className="flex-1 bg-white border border-gray-200 text-gray-600 font-semibold py-2.5 rounded-xl text-xs active:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => onClearRoom({ roomId: room.id })}
+                    className="flex-1 bg-gray-700 text-white font-semibold py-2.5 rounded-xl text-xs active:bg-gray-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Vacate inline */}
             {vacating ? (
               <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-3 mb-2">
@@ -294,16 +319,26 @@ function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onUpdateTenan
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2.5">
-                <button onClick={() => setShowRentHistory(true)}
-                  className="flex-1 bg-blue-50 text-blue-700 font-semibold py-3 rounded-2xl active:bg-blue-100 text-sm">
-                  Full History
-                </button>
-                <button onClick={() => setVacating(true)}
-                  className="flex-1 bg-red-50 text-red-500 font-semibold py-3 rounded-2xl active:bg-red-100 text-sm">
-                  Vacate Room
-                </button>
-              </div>
+              <>
+                <div className="flex gap-2.5">
+                  <button onClick={() => setShowRentHistory(true)}
+                    className="flex-1 bg-blue-50 text-blue-700 font-semibold py-3 rounded-2xl active:bg-blue-100 text-sm">
+                    Full History
+                  </button>
+                  <button onClick={() => setVacating(true)}
+                    className="flex-1 bg-red-50 text-red-500 font-semibold py-3 rounded-2xl active:bg-red-100 text-sm">
+                    Vacate Room
+                  </button>
+                </div>
+                {!clearing && (
+                  <button
+                    onClick={() => setClearing(true)}
+                    className="w-full text-center text-[11px] text-gray-300 font-semibold mt-1 py-1 active:text-gray-500"
+                  >
+                    Clear booking (mistake)
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
@@ -324,7 +359,7 @@ function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onUpdateTenan
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export default function RoomDetails({ room, tenants, onBack, onAddBooking, onBookRoom, onVacate, onVacateRoom, onUpdateTenant }) {
+export default function RoomDetails({ room, tenants, onBack, onAddBooking, onBookRoom, onVacate, onVacateRoom, onClearBed, onClearRoom, onUpdateTenant }) {
   if (!room) return null
 
   // Detect room-booked state: bookableAsRoom room where all beds are occupied by one tenant with roomBooked flag
@@ -397,6 +432,7 @@ export default function RoomDetails({ room, tenants, onBack, onAddBooking, onBoo
               tenant={roomTenant}
               allTenants={tenants}
               onVacateRoom={onVacateRoom}
+              onClearRoom={onClearRoom}
               onUpdateTenant={onUpdateTenant}
             />
           ) : (
@@ -408,6 +444,7 @@ export default function RoomDetails({ room, tenants, onBack, onAddBooking, onBoo
                 tenants={tenants}
                 onAddBooking={onAddBooking}
                 onVacate={onVacate}
+                onClear={(bedId) => onClearBed({ roomId: room.id, bedId })}
                 onUpdateTenant={onUpdateTenant}
               />
             ))

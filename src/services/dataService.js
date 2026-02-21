@@ -125,6 +125,36 @@ export function updateTenant({ tenants, tenantId, updates }) {
   return tenants.map(t => t.id === tenantId ? { ...t, ...updates } : t)
 }
 
+/** Clear a bed booking (mistake correction): removes tenant record entirely. Returns { rooms, tenants }. */
+export function clearBed({ rooms, tenants, roomId, bedId }) {
+  const room = rooms.find(r => r.id === roomId)
+  const bed = room?.beds.find(b => b.id === bedId)
+  if (!bed?.tenantId) return { rooms, tenants }
+  const tenantId = bed.tenantId
+  const updatedRooms = rooms.map(r =>
+    r.id !== roomId ? r : {
+      ...r,
+      beds: r.beds.map(b => b.id === bedId ? { ...b, occupied: false, tenantId: null } : b)
+    }
+  )
+  return { rooms: updatedRooms, tenants: tenants.filter(t => t.id !== tenantId) }
+}
+
+/** Clear a room booking (mistake correction): removes tenant record entirely. Returns { rooms, tenants }. */
+export function clearRoom({ rooms, tenants, roomId }) {
+  const room = rooms.find(r => r.id === roomId)
+  if (!room) return { rooms, tenants }
+  const tenantId = room.beds.find(b => b.occupied)?.tenantId
+  if (!tenantId) return { rooms, tenants }
+  const updatedRooms = rooms.map(r =>
+    r.id !== roomId ? r : {
+      ...r,
+      beds: r.beds.map(b => ({ ...b, occupied: false, tenantId: null }))
+    }
+  )
+  return { rooms: updatedRooms, tenants: tenants.filter(t => t.id !== tenantId) }
+}
+
 /**
  * Read any data saved in localStorage from before cloud sync was added.
  * Returns { rooms, tenants } or null if nothing found.
