@@ -22,7 +22,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icons/*.png'],
+      includeAssets: ['favicon.ico', 'icons/*.png', 'images/*.jpeg', 'images/*.jpg', 'images/*.png'],
       manifest: {
         name: 'Ashiana PG Manager',
         short_name: 'Ashiana PG',

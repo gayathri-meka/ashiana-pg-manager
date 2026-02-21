@@ -42,21 +42,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-300 flex justify-center">
+    <div className="min-h-screen bg-stone-900 flex justify-center">
       <div
-        className="w-full max-w-[430px] min-h-screen flex flex-col"
+        className="w-full max-w-[430px] min-h-screen flex flex-col relative overflow-hidden"
         style={{ boxShadow: '0 0 80px rgba(0,0,0,0.22)' }}
       >
-        {/* Top gradient hero */}
+        {/* Full-screen background photo */}
         <div
-          className="flex-1 flex flex-col items-center justify-center text-white px-8 pt-16 pb-10"
-          style={{ background: 'linear-gradient(160deg, #14532d 0%, #16a34a 100%)' }}
-        >
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: 'url(/images/pg-full.jpeg)' }}
+        />
+        {/* Dark overlay 45% */}
+        <div className="absolute inset-0 bg-black/45" />
+
+        {/* Hero content */}
+        <div className="relative flex-1 flex flex-col items-center justify-center text-white px-8 pt-16 pb-10">
           <div className="mb-4 opacity-90">
             <HomeIcon />
           </div>
           <h1 className="text-[32px] font-bold tracking-tight">Ashiana PG</h1>
-          <p className="text-green-200 text-sm tracking-[0.15em] uppercase mt-1 font-medium">
+          <p className="text-white/60 text-sm tracking-[0.15em] uppercase mt-1 font-medium">
             Home Away From Home
           </p>
 
@@ -69,7 +74,7 @@ export default function LoginPage() {
         </div>
 
         {/* Sign-in card */}
-        <div className="bg-white px-6 pt-8 pb-10">
+        <div className="relative bg-white px-6 pt-8 pb-10">
           <h2 className="text-xl font-bold text-gray-900 text-center">Welcome back</h2>
           <p className="text-gray-400 text-sm text-center mt-1 mb-8">
             Sign in to manage your PG
