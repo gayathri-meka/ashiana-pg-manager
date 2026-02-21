@@ -35,7 +35,7 @@ function EmptyBed({ bed, onAddBooking }) {
   )
 }
 
-// ── Deposit status pill (tap to toggle) ────────────────────────────────────
+// ── Deposit status pill (tap to toggle) ─────────────────────────────────────
 function DepositPill({ label, paid, onToggle }) {
   return (
     <button
@@ -52,7 +52,7 @@ function DepositPill({ label, paid, onToggle }) {
   )
 }
 
-// ── Current-month rent row ─────────────────────────────────────────────────
+// ── Current-month rent row ───────────────────────────────────────────────────
 function ThisMonthRent({ tenant, onUpdate }) {
   const thisMonth = currentMonthKey()
   const paid = !!(tenant.rentHistory || {})[thisMonth]
@@ -83,18 +83,20 @@ function ThisMonthRent({ tenant, onUpdate }) {
   )
 }
 
-// ── Occupied bed — main view ────────────────────────────────────────────────
+// ── Occupied bed ─────────────────────────────────────────────────────────────
 function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
   const [showRentHistory, setShowRentHistory] = useState(false)
 
-  // Edit form state — only editable fields (no payment status here)
   const [form, setForm] = useState({
-    name: tenant.name,
-    contact: tenant.contact,
-    rent: tenant.rent,
-    deposit: tenant.deposit,
-    cautionDeposit: tenant.cautionDeposit,
+    name: tenant.name || '',
+    contact: tenant.contact || '',
+    rent: tenant.rent || '',
+    deposit: tenant.deposit || '',
+    cautionDeposit: tenant.cautionDeposit || '',
+    joiningDate: tenant.joiningDate || '',
+    notes: tenant.notes || '',
   })
 
   function handleSave() {
@@ -106,6 +108,8 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
         rent: Number(form.rent),
         deposit: Number(form.deposit),
         cautionDeposit: Number(form.cautionDeposit),
+        joiningDate: form.joiningDate,
+        notes: form.notes,
       }
     })
     setEditing(false)
@@ -119,12 +123,14 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
     onUpdateTenant({ tenantId: tenant.id, updates })
   }
 
-  // ── Edit mode ────────────────────────────────────────────────────────────
+  const bedNum = bed.id.split('-').pop()
+
+  // ── Edit mode ──────────────────────────────────────────────────────────────
   if (editing) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-          Bed {bed.id.split('-').pop()} — Edit
+          Bed {bedNum} — Edit
         </span>
 
         {[
@@ -133,6 +139,7 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
           { label: 'Rent (₹/month)', key: 'rent', type: 'number' },
           { label: 'Deposit (₹)', key: 'deposit', type: 'number' },
           { label: 'Caution Deposit (₹)', key: 'cautionDeposit', type: 'number' },
+          { label: 'Joining Date', key: 'joiningDate', type: 'date' },
         ].map(({ label, key, type }) => (
           <div key={key}>
             <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide block mb-1.5">
@@ -146,6 +153,19 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
             />
           </div>
         ))}
+
+        <div>
+          <label className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide block mb-1.5">
+            Notes
+          </label>
+          <textarea
+            value={form.notes}
+            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            placeholder="Any additional info…"
+            rows={2}
+            className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 resize-none"
+          />
+        </div>
 
         <div className="flex gap-2.5 pt-1">
           <button
@@ -166,79 +186,109 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
     )
   }
 
-  // ── View mode ─────────────────────────────────────────────────────────────
+  // ── View mode — collapsed ─────────────────────────────────────────────────
   return (
     <>
       <div
-        className="bg-white rounded-2xl p-4"
+        className="bg-white rounded-2xl overflow-hidden"
         style={{ boxShadow: 'inset 4px 0 0 #16a34a, 0 1px 4px rgba(0,0,0,0.06)' }}
       >
-        {/* Top row: bed label + edit */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Summary row — always visible, tap to expand/collapse */}
+        <button
+          onClick={() => setIsExpanded(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-3.5 active:bg-gray-50 transition-colors"
+        >
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
-              Bed {bed.id.split('-').pop()}
+              Bed {bedNum}
             </span>
-            <span className="w-2 h-2 rounded-full bg-green-500" />
+            <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
           </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs text-blue-600 font-semibold px-3 py-1.5 bg-blue-50 rounded-lg active:bg-blue-100"
-          >
-            Edit
-          </button>
-        </div>
-
-        {/* Tenant name */}
-        <div className="text-[17px] font-bold text-gray-900 mb-3">{tenant.name}</div>
-
-        {/* Info fields */}
-        <Field label="Contact" value={tenant.contact || '—'} />
-        <Field label="Rent" value={formatCurrency(tenant.rent) + ' / mo'} />
-        <Field label="Joining Date" value={formatDate(tenant.joiningDate)} />
-
-        {/* ── Deposit status pills ── */}
-        <div className="mt-3 mb-3">
-          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">
-            Deposits
-          </p>
-          <div className="flex gap-2">
-            <DepositPill
-              label={`Deposit ${formatCurrency(tenant.deposit)}`}
-              paid={tenant.depositPaid}
-              onToggle={() => handleToggleDeposit('depositPaid')}
-            />
-            <DepositPill
-              label={`Caution ${formatCurrency(tenant.cautionDeposit)}`}
-              paid={tenant.cautionDepositPaid}
-              onToggle={() => handleToggleDeposit('cautionDepositPaid')}
-            />
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-bold text-gray-900 truncate">{tenant.name}</span>
+            {tenant.notes && (
+              <span className="text-gray-300 text-base shrink-0" title="Has notes">·</span>
+            )}
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={`text-gray-300 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            >
+              <polyline points="6,9 12,15 18,9" />
+            </svg>
           </div>
-        </div>
+        </button>
 
-        {/* ── This month's rent ── */}
-        <div className="mb-4">
-          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">
-            This Month
-          </p>
-          <ThisMonthRent tenant={tenant} onUpdate={handleRentHistoryUpdate} />
-        </div>
+        {/* Expanded details */}
+        {isExpanded && (
+          <div className="px-4 pb-4 border-t border-gray-50">
+            {/* Edit button */}
+            <div className="flex justify-end pt-3 mb-1">
+              <button
+                onClick={() => setEditing(true)}
+                className="text-xs text-blue-600 font-semibold px-3 py-1.5 bg-blue-50 rounded-lg active:bg-blue-100"
+              >
+                Edit
+              </button>
+            </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2.5">
-          <button
-            onClick={() => setShowRentHistory(true)}
-            className="flex-1 bg-blue-50 text-blue-700 font-semibold py-3 rounded-2xl active:bg-blue-100 text-sm"
-          >
-            Full History
-          </button>
-          <button
-            onClick={() => onVacate(bed.id)}
-            className="flex-1 bg-red-50 text-red-500 font-semibold py-3 rounded-2xl active:bg-red-100 text-sm"
-          >
-            Vacate
-          </button>
-        </div>
+            {/* Info fields */}
+            <Field label="Contact" value={tenant.contact || '—'} />
+            <Field label="Rent" value={formatCurrency(tenant.rent) + ' / mo'} />
+            <Field label="Joining Date" value={formatDate(tenant.joiningDate)} />
+
+            {/* Notes */}
+            {tenant.notes && (
+              <div className="py-2 border-b border-gray-50">
+                <span className="text-xs text-gray-400 font-medium">Notes</span>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{tenant.notes}</p>
+              </div>
+            )}
+
+            {/* Deposit status pills */}
+            <div className="mt-3 mb-3">
+              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">
+                Deposits
+              </p>
+              <div className="flex gap-2">
+                <DepositPill
+                  label={`Deposit ${formatCurrency(tenant.deposit)}`}
+                  paid={tenant.depositPaid}
+                  onToggle={() => handleToggleDeposit('depositPaid')}
+                />
+                <DepositPill
+                  label={`Caution ${formatCurrency(tenant.cautionDeposit)}`}
+                  paid={tenant.cautionDepositPaid}
+                  onToggle={() => handleToggleDeposit('cautionDepositPaid')}
+                />
+              </div>
+            </div>
+
+            {/* This month's rent */}
+            <div className="mb-4">
+              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-2">
+                This Month
+              </p>
+              <ThisMonthRent tenant={tenant} onUpdate={handleRentHistoryUpdate} />
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => setShowRentHistory(true)}
+                className="flex-1 bg-blue-50 text-blue-700 font-semibold py-3 rounded-2xl active:bg-blue-100 text-sm"
+              >
+                Full History
+              </button>
+              <button
+                onClick={() => onVacate(bed.id)}
+                className="flex-1 bg-red-50 text-red-500 font-semibold py-3 rounded-2xl active:bg-red-100 text-sm"
+              >
+                Vacate
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showRentHistory && (
@@ -254,7 +304,7 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
   )
 }
 
-// ── Export ──────────────────────────────────────────────────────────────────
+// ── Export ───────────────────────────────────────────────────────────────────
 export default function BedCard({ bed, tenants, onAddBooking, onVacate, onUpdateTenant }) {
   const tenant = bed.tenantId ? tenants.find(t => t.id === bed.tenantId) : null
 

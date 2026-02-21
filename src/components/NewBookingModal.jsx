@@ -6,7 +6,8 @@ const EMPTY_FORM = {
   rent: '',
   deposit: '',
   cautionDeposit: '',
-  joiningDate: new Date().toISOString().split('T')[0]
+  joiningDate: new Date().toISOString().split('T')[0],
+  notes: '',
 }
 
 export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
@@ -130,6 +131,17 @@ export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
                   value={form.joiningDate}
                   onChange={e => setForm(f => ({ ...f, joiningDate: e.target.value }))}
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Notes</label>
+                <textarea
+                  value={form.notes}
+                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Any additional info… (optional)"
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 resize-none"
                 />
               </div>
             </div>

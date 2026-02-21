@@ -101,7 +101,7 @@ export default function HomePage({ rooms, tenants, onRoomClick, onNewBooking, on
         {/* Settings button */}
         <button
           onClick={onSettings}
-          className="absolute right-4 top-[calc(env(safe-area-inset-top)+12px)] text-white/60 active:text-white transition-colors p-1"
+          className="absolute right-4 top-[calc(env(safe-area-inset-top)+10px)] bg-white/20 text-white p-2.5 rounded-xl active:bg-white/30 transition-colors"
         >
           <GearIcon />
         </button>
