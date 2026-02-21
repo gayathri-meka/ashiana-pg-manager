@@ -140,10 +140,7 @@ function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onClearRoom, 
   if (editing) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Room {room.id} — Edit</span>
-          <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">Room Booking</span>
-        </div>
+        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Room {room.id} — Edit</span>
 
         {[
           { label: 'Name', key: 'name', type: 'text' },
@@ -210,7 +207,7 @@ function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onClearRoom, 
     <>
       <div
         className="bg-white rounded-2xl overflow-hidden"
-        style={{ boxShadow: 'inset 4px 0 0 #3b82f6, 0 1px 4px rgba(0,0,0,0.06)' }}
+        style={{ boxShadow: 'inset 4px 0 0 #16a34a, 0 1px 4px rgba(0,0,0,0.06)' }}
       >
         {/* Summary row */}
         <button
@@ -218,9 +215,10 @@ function RoomBookingCard({ room, tenant, allTenants, onVacateRoom, onClearRoom, 
           className="w-full flex items-center justify-between px-4 py-3.5 active:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
-              Room Booking
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+              Room {room.id}
             </span>
+            <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
           </div>
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-sm font-bold text-gray-900 truncate">{tenant.name}</span>
