@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from '../utils/dateUtils.js'
 export default function VacateModal({ rooms, tenants, preselect, onVacate, onClose }) {
   const [selectedRoom, setSelectedRoom] = useState(preselect.roomId || '')
   const [selectedBed, setSelectedBed] = useState(preselect.bedId || '')
+  const [vacateDate, setVacateDate] = useState(new Date().toISOString().split('T')[0])
   const [confirmed, setConfirmed] = useState(false)
   const [error, setError] = useState('')
 
@@ -17,22 +18,22 @@ export default function VacateModal({ rooms, tenants, preselect, onVacate, onClo
   function handleVacate() {
     if (!selectedRoom) return setError('Please select a room.')
     if (!selectedBed) return setError('Please select a bed.')
+    if (!vacateDate) return setError('Please set a vacate date.')
     if (!confirmed) return setError('Please tick the confirmation checkbox.')
-    onVacate({ roomId: selectedRoom, bedId: selectedBed })
+    onVacate({ roomId: selectedRoom, bedId: selectedBed, vacateDate })
     onClose()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: 'rgba(0,0,0,0.55)' }}>
-      <div className="bg-white w-full max-w-[430px] rounded-t-3xl shadow-2xl max-h-[88vh] flex flex-col">
-
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
-        </div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: 'rgba(0,0,0,0.55)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-white w-full max-w-[390px] rounded-3xl shadow-2xl max-h-[88vh] flex flex-col">
 
         {/* Header */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
+        <div className="px-5 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between shrink-0">
           <h2 className="text-[17px] font-bold text-red-500">Mark Vacated</h2>
           <button
             onClick={onClose}
@@ -42,8 +43,8 @@ export default function VacateModal({ rooms, tenants, preselect, onVacate, onClo
           </button>
         </div>
 
-        {/* Content */}
-        <div className="overflow-y-auto scroll-hidden flex-1 px-5 py-4 space-y-4">
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
 
           <div>
             <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Room</label>
@@ -84,6 +85,17 @@ export default function VacateModal({ rooms, tenants, preselect, onVacate, onClo
             </select>
           </div>
 
+          {/* Vacate date */}
+          <div>
+            <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Vacate Date</label>
+            <input
+              type="date"
+              value={vacateDate}
+              onChange={e => setVacateDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-gray-50"
+            />
+          </div>
+
           {/* Tenant preview card */}
           {tenant && (
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
@@ -91,7 +103,7 @@ export default function VacateModal({ rooms, tenants, preselect, onVacate, onClo
               {tenant.contact && (
                 <div className="text-sm text-gray-500 mt-0.5">{tenant.contact}</div>
               )}
-              <div className="mt-3 grid grid-cols-2 gap-y-1 text-sm text-gray-600">
+              <div className="mt-3 grid grid-cols-2 gap-y-1.5 text-sm text-gray-600">
                 <span className="text-gray-400 text-xs">Rent</span>
                 <span className="text-right font-medium">{formatCurrency(tenant.rent)}/mo</span>
                 <span className="text-gray-400 text-xs">Joined</span>
@@ -105,7 +117,7 @@ export default function VacateModal({ rooms, tenants, preselect, onVacate, onClo
 
           {/* Confirm checkbox */}
           {selectedBed && (
-            <label className="flex items-start gap-3 py-2 cursor-pointer">
+            <label className="flex items-start gap-3 py-1 cursor-pointer">
               <input
                 type="checkbox"
                 checked={confirmed}
@@ -113,7 +125,7 @@ export default function VacateModal({ rooms, tenants, preselect, onVacate, onClo
                 className="w-5 h-5 mt-0.5 rounded accent-red-500 shrink-0"
               />
               <span className="text-sm text-gray-600 leading-relaxed">
-                I confirm this bed should be marked vacated and the tenant deactivated.
+                I confirm this bed should be vacated and the tenant deactivated.
               </span>
             </label>
           )}
@@ -125,7 +137,7 @@ export default function VacateModal({ rooms, tenants, preselect, onVacate, onClo
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pb-safe pt-1">
+          <div className="flex gap-3 pt-1 pb-2">
             <button
               onClick={onClose}
               className="flex-1 bg-gray-100 text-gray-700 font-semibold py-4 rounded-2xl active:bg-gray-200 text-sm"

@@ -196,8 +196,8 @@ function AuthenticatedApp({ user }) {
     await saveToCloud(r, t)
   }, [rooms, tenants])
 
-  const handleVacateBed = useCallback(async ({ roomId, bedId }) => {
-    const { rooms: r, tenants: t } = vacateBed({ rooms, tenants, roomId, bedId })
+  const handleVacateBed = useCallback(async ({ roomId, bedId, vacateDate }) => {
+    const { rooms: r, tenants: t } = vacateBed({ rooms, tenants, roomId, bedId, vacateDate })
     setRooms(r)
     setTenants(t)
     await saveToCloud(r, t)

@@ -40,12 +40,13 @@ export function bookBed({ rooms, tenants, roomId, bedId, tenantData }) {
 }
 
 /** Vacate a bed: mark tenant inactive, clear bed. Returns { rooms, tenants }. */
-export function vacateBed({ rooms, tenants, roomId, bedId }) {
+export function vacateBed({ rooms, tenants, roomId, bedId, vacateDate }) {
   const room = rooms.find(r => r.id === roomId)
   const bed = room?.beds.find(b => b.id === bedId)
   if (!bed?.tenantId) return { rooms, tenants }
 
   const tenantId = bed.tenantId
+  const resolvedDate = vacateDate || new Date().toISOString().split('T')[0]
 
   const updatedRooms = rooms.map(r =>
     r.id !== roomId ? r : {
@@ -57,7 +58,7 @@ export function vacateBed({ rooms, tenants, roomId, bedId }) {
   )
 
   const updatedTenants = tenants.map(t =>
-    t.id === tenantId ? { ...t, active: false } : t
+    t.id === tenantId ? { ...t, active: false, vacateDate: resolvedDate } : t
   )
 
   return { rooms: updatedRooms, tenants: updatedTenants }
