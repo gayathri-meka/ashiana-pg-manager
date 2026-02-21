@@ -88,31 +88,70 @@ function ThisMonthRent({ tenant, onUpdate }) {
 function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [rentPrompt, setRentPrompt] = useState(false)
   const [showRentHistory, setShowRentHistory] = useState(false)
+
+  const thisMonth = currentMonthKey()
+  const currentRent = getRentForMonth(tenant, thisMonth)
 
   const [form, setForm] = useState({
     name: tenant.name || '',
     contact: tenant.contact || '',
-    rent: tenant.rent || '',
+    rent: String(currentRent),
     deposit: tenant.deposit || '',
     cautionDeposit: tenant.cautionDeposit || '',
     joiningDate: tenant.joiningDate || '',
     notes: tenant.notes || '',
   })
 
+  const nonRentUpdates = {
+    name: form.name,
+    contact: form.contact,
+    deposit: Number(form.deposit),
+    cautionDeposit: Number(form.cautionDeposit),
+    joiningDate: form.joiningDate,
+    notes: form.notes,
+  }
+
   function handleSave() {
+    const newRent = Number(form.rent)
+    if (newRent !== currentRent) {
+      setRentPrompt(true)
+      return
+    }
+    onUpdateTenant({ tenantId: tenant.id, updates: { ...nonRentUpdates, rent: newRent } })
+    setEditing(false)
+  }
+
+  function saveWithRentChange(mode) {
+    const newRent = Number(form.rent)
+    let updatedRentChanges
+
+    if (mode === 'thisMonth') {
+      const existing = (tenant.rentChanges || []).filter(rc => rc.from !== thisMonth)
+      updatedRentChanges = [...existing, { from: thisMonth, amount: newRent }]
+        .sort((a, b) => a.from.localeCompare(b.from))
+    } else {
+      // Correct the currently applicable entry
+      const changes = [...(tenant.rentChanges || [])]
+      if (changes.length === 0) {
+        const joiningMonth = (tenant.joiningDate || '').slice(0, 7) || thisMonth
+        updatedRentChanges = [{ from: joiningMonth, amount: newRent }]
+      } else {
+        let latestIdx = 0
+        for (let i = 0; i < changes.length; i++) {
+          if (changes[i].from <= thisMonth) latestIdx = i
+        }
+        changes[latestIdx] = { ...changes[latestIdx], amount: newRent }
+        updatedRentChanges = changes
+      }
+    }
+
     onUpdateTenant({
       tenantId: tenant.id,
-      updates: {
-        name: form.name,
-        contact: form.contact,
-        rent: Number(form.rent),
-        deposit: Number(form.deposit),
-        cautionDeposit: Number(form.cautionDeposit),
-        joiningDate: form.joiningDate,
-        notes: form.notes,
-      }
+      updates: { ...nonRentUpdates, rent: newRent, rentChanges: updatedRentChanges },
     })
+    setRentPrompt(false)
     setEditing(false)
   }
 
@@ -168,21 +207,49 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
           />
         </div>
 
-        <div className="flex gap-2.5 pt-1">
-          <button
-            onClick={handleSave}
-            className="flex-1 text-white font-semibold py-3.5 rounded-2xl text-sm active:opacity-80"
-            style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
-          >
-            Save
-          </button>
-          <button
-            onClick={() => setEditing(false)}
-            className="flex-1 bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-2xl active:bg-gray-200 text-sm"
-          >
-            Cancel
-          </button>
-        </div>
+        {rentPrompt ? (
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 space-y-2.5">
+            <p className="text-sm font-semibold text-gray-800">
+              Rent changed {formatCurrency(currentRent)} → {formatCurrency(Number(form.rent))}
+            </p>
+            <p className="text-xs text-gray-500 mb-1">Apply from when?</p>
+            <button
+              onClick={() => saveWithRentChange('thisMonth')}
+              className="w-full text-white font-semibold py-3 rounded-xl text-sm active:opacity-80"
+              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+            >
+              This month onwards ({formatMonth(thisMonth)})
+            </button>
+            <button
+              onClick={() => saveWithRentChange('correct')}
+              className="w-full bg-white border border-gray-200 text-gray-700 font-semibold py-3 rounded-xl text-sm active:bg-gray-50"
+            >
+              Correct a mistake (update original)
+            </button>
+            <button
+              onClick={() => setRentPrompt(false)}
+              className="w-full text-gray-400 text-xs font-semibold py-2 active:text-gray-600"
+            >
+              ← Back to edit
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2.5 pt-1">
+            <button
+              onClick={handleSave}
+              className="flex-1 text-white font-semibold py-3.5 rounded-2xl text-sm active:opacity-80"
+              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              className="flex-1 bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-2xl active:bg-gray-200 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -235,7 +302,7 @@ function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
 
             {/* Info fields */}
             <Field label="Contact" value={tenant.contact || '—'} />
-            <Field label="Rent" value={formatCurrency(tenant.rent) + ' / mo'} />
+            <Field label="Rent" value={formatCurrency(currentRent) + ' / mo'} />
             <Field label="Joining Date" value={formatDate(tenant.joiningDate)} />
 
             {/* Notes */}

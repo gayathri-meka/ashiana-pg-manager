@@ -53,106 +53,30 @@ function MonthChip({ ym, paid, onToggle }) {
   )
 }
 
-// ── Rent changes section ──────────────────────────────────────────────────────
+// ── Rent changes log (read-only) ─────────────────────────────────────────────
 
-function RentChanges({ tenant, onUpdate }) {
-  const [showForm, setShowForm] = useState(false)
-  const [fromMonth, setFromMonth] = useState(() => {
-    // Default to next month
-    const now = new Date()
-    const y = now.getFullYear()
-    const m = String(now.getMonth() + 2).padStart(2, '0')
-    // Handle December → January next year
-    if (now.getMonth() === 11) return `${y + 1}-01`
-    return `${y}-${m}`
-  })
-  const [amount, setAmount] = useState('')
-
+function RentChanges({ tenant }) {
   const changes = [...(tenant.rentChanges || [])]
     .sort((a, b) => a.from.localeCompare(b.from))
 
-  // Min month = joining month
-  const minMonth = (tenant.joiningDate || '').slice(0, 7) || '2020-01'
-
-  function handleAdd(e) {
-    e.preventDefault()
-    if (!fromMonth || !amount) return
-    const existing = (tenant.rentChanges || []).filter(rc => rc.from !== fromMonth)
-    const updated = [...existing, { from: fromMonth, amount: Number(amount) }]
-      .sort((a, b) => a.from.localeCompare(b.from))
-    onUpdate({ rentChanges: updated })
-    setAmount('')
-    setShowForm(false)
-  }
+  if (changes.length === 0) return null
 
   return (
     <div className="mt-5 pt-4 border-t border-gray-100">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Rent Changes</p>
-        <button
-          onClick={() => setShowForm(o => !o)}
-          className="text-xs text-blue-600 font-semibold px-3 py-1 bg-blue-50 rounded-lg active:bg-blue-100"
-        >
-          {showForm ? 'Cancel' : '+ Change Rent'}
-        </button>
-      </div>
-
-      {/* Change log */}
-      <div className="space-y-1.5 mb-3">
-        {changes.length === 0 ? (
-          <p className="text-xs text-gray-400 italic">No changes recorded</p>
-        ) : (
-          changes.map((rc, i) => (
-            <div key={rc.from} className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">
-                {i === 0 ? 'Initial · ' : 'From '}{formatMonth(rc.from)}
-              </span>
-              <span className="font-semibold text-gray-800">{formatCurrency(rc.amount)}<span className="text-xs font-normal text-gray-400">/mo</span></span>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Inline add form */}
-      {showForm && (
-        <form onSubmit={handleAdd} className="bg-gray-50 rounded-2xl p-3 space-y-3">
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide block mb-1">
-                Effective From
-              </label>
-              <input
-                type="month"
-                value={fromMonth}
-                min={minMonth}
-                onChange={e => setFromMonth(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide block mb-1">
-                New Rent (₹)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                placeholder="e.g. 5500"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-              />
-            </div>
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Rent History</p>
+      <div className="space-y-1.5">
+        {changes.map((rc, i) => (
+          <div key={rc.from} className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">
+              {i === 0 ? 'Initial · ' : 'From '}{formatMonth(rc.from)}
+            </span>
+            <span className="font-semibold text-gray-800">
+              {formatCurrency(rc.amount)}<span className="text-xs font-normal text-gray-400">/mo</span>
+            </span>
           </div>
-          <button
-            type="submit"
-            disabled={!fromMonth || !amount}
-            className="w-full text-white font-semibold py-2.5 rounded-xl text-sm disabled:opacity-40 active:opacity-80"
-            style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
-          >
-            Save Rent Change
-          </button>
-        </form>
-      )}
+        ))}
+      </div>
+      <p className="text-[10px] text-gray-300 mt-3">To change rent, tap Edit on the bed card.</p>
     </div>
   )
 }
@@ -217,8 +141,8 @@ function RentTab({ tenant, onUpdate }) {
         ))}
       </div>
 
-      {/* Rent changes section */}
-      <RentChanges tenant={tenant} onUpdate={onUpdate} />
+      {/* Rent changes log */}
+      <RentChanges tenant={tenant} />
     </div>
   )
 }
