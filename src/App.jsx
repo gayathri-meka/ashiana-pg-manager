@@ -133,7 +133,13 @@ function AuthenticatedApp({ user }) {
     const unsub = onSnapshot(PG_DATA_REF(), async (snap) => {
       if (snap.exists()) {
         const data = snap.data()
-        setRooms(data.rooms ?? INITIAL_ROOMS)
+        const rawRooms = data.rooms ?? INITIAL_ROOMS
+        // Always apply bookableAsRoom from INITIAL_ROOMS config — it's not user data
+        const mergedRooms = rawRooms.map(room => {
+          const initial = INITIAL_ROOMS.find(r => r.id === room.id)
+          return initial ? { ...room, bookableAsRoom: initial.bookableAsRoom ?? false } : room
+        })
+        setRooms(mergedRooms)
         setTenants(data.tenants ?? [])
         setDataReady(true)
         setMigrationPending(false)
