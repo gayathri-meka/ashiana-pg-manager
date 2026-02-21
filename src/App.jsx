@@ -295,6 +295,7 @@ function AuthenticatedApp({ user }) {
           <SettingsPage
             onBack={() => setShowSettings(false)}
             rooms={rooms}
+            tenants={tenants}
             onUpdateRooms={handleUpdateRooms}
           />
         ) : currentRoom ? (

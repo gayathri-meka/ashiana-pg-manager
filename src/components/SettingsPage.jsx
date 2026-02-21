@@ -5,6 +5,7 @@ import {
 import { db } from '../firebase.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { formatDate } from '../utils/dateUtils.js'
+import { generateCSV, downloadCSV, exportFilename } from '../utils/exportUtils.js'
 
 function Avatar({ email }) {
   const initials = email.split('@')[0].slice(0, 2).toUpperCase()
@@ -15,7 +16,7 @@ function Avatar({ email }) {
   )
 }
 
-export default function SettingsPage({ onBack, rooms = [], onUpdateRooms }) {
+export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdateRooms }) {
   const { user, signOut } = useAuth()
   const [admins, setAdmins] = useState([])
   const [loadingAdmins, setLoadingAdmins] = useState(true)
@@ -27,6 +28,23 @@ export default function SettingsPage({ onBack, rooms = [], onUpdateRooms }) {
   // Accordion open state
   const [adminOpen, setAdminOpen] = useState(false)
   const [bedDefaultsOpen, setBedDefaultsOpen] = useState(false)
+
+  // Export
+  const [exporting, setExporting] = useState(false)
+
+  function handleExport() {
+    setExporting(true)
+    setTimeout(() => {
+      // Wrapped in setTimeout so the UI can show the loading state before the
+      // synchronous CSV generation blocks the thread on large datasets
+      try {
+        const csv = generateCSV(rooms, tenants)
+        downloadCSV(csv, exportFilename())
+      } finally {
+        setExporting(false)
+      }
+    }, 50)
+  }
 
   // Bed defaults local state: { [bedId]: string }
   const [bedDefaults, setBedDefaults] = useState({})
@@ -315,6 +333,39 @@ export default function SettingsPage({ onBack, rooms = [], onUpdateRooms }) {
             )}
           </section>
         )}
+
+        {/* ── Export Data section ── */}
+        <section className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-4 pt-4 pb-3 border-b border-gray-50">
+            <h2 className="text-sm font-bold text-gray-900">Export Data</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Download everything as a spreadsheet — all tenants, payments, and history.
+            </p>
+          </div>
+          <div className="px-4 py-4 space-y-3">
+            <div className="flex items-start gap-3 text-xs text-gray-500 leading-relaxed">
+              <span className="text-lg leading-none mt-0.5">📋</span>
+              <span>
+                Includes <span className="font-semibold text-gray-700">{tenants.length} tenant{tenants.length !== 1 ? 's' : ''}</span> ({tenants.filter(t => t.active).length} active · {tenants.filter(t => !t.active).length} vacated) with full rent history. Opens in Excel or Google Sheets.
+              </span>
+            </div>
+            <button
+              onClick={handleExport}
+              disabled={exporting || tenants.length === 0}
+              className="w-full text-white font-semibold py-3 rounded-2xl text-sm disabled:opacity-40 active:opacity-80 transition-opacity flex items-center justify-center gap-2"
+              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+            >
+              {exporting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Preparing…
+                </>
+              ) : (
+                'Download CSV'
+              )}
+            </button>
+          </div>
+        </section>
 
         {/* ── Account section ── */}
         <section className="bg-white rounded-2xl shadow-sm overflow-hidden">
