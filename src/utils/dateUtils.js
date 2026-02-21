@@ -1,13 +1,9 @@
 /**
- * Returns an array of "YYYY-MM" strings from joiningDate month → current month.
- *
- * NOTE: new Date('YYYY-MM-DD') parses as UTC midnight, which shifts the date
- * backwards in timezones behind UTC (e.g. US) and causes non-midnight local
- * times in timezones ahead of UTC (e.g. IST UTC+5:30). Comparing a non-midnight
- * start against a midnight end breaks the while loop for single-month ranges.
- * Fix: parse the date string directly to avoid any UTC→local conversion.
+ * Returns an array of "YYYY-MM" strings from joiningDate month → current month + lookahead.
+ * lookahead=1 (default) means the next calendar month is always included so
+ * advance payments can be recorded before the month begins.
  */
-export function getMonthRange(joiningDate) {
+export function getMonthRange(joiningDate, lookahead = 1) {
   if (!joiningDate) return []
 
   // Parse YYYY-MM-DD components directly — no UTC conversion
@@ -15,9 +11,9 @@ export function getMonthRange(joiningDate) {
   if (!y || !m) return []
 
   const now = new Date()
-  // Both dates created via (year, month, day) constructor → local midnight
   let cur = new Date(y, m - 1, 1)
-  const end = new Date(now.getFullYear(), now.getMonth(), 1)
+  // End = first day of (current month + lookahead)
+  const end = new Date(now.getFullYear(), now.getMonth() + lookahead, 1)
 
   const months = []
   while (cur <= end) {
@@ -27,6 +23,23 @@ export function getMonthRange(joiningDate) {
     cur.setMonth(cur.getMonth() + 1)
   }
   return months
+}
+
+/**
+ * Returns the applicable rent amount for a given month.
+ * Looks up tenant.rentChanges (sorted ascending by `from`) and returns
+ * the amount of the latest entry whose `from` ≤ month.
+ * Falls back to tenant.rent for tenants without rentChanges.
+ */
+export function getRentForMonth(tenant, month) {
+  const changes = tenant.rentChanges
+  if (!changes || changes.length === 0) return tenant.rent || 0
+  // Find the latest change whose effective month is <= the queried month
+  let amount = tenant.rent || 0
+  for (const rc of changes) {
+    if (rc.from <= month) amount = rc.amount
+  }
+  return amount
 }
 
 /** Format "YYYY-MM" → "Jan 2026" */

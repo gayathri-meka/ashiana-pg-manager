@@ -13,15 +13,18 @@ export function generateId() {
 /** Add a new tenant and assign to a bed. Returns { rooms, tenants }. */
 export function bookBed({ rooms, tenants, roomId, bedId, tenantData }) {
   const tenantId = generateId()
+  const joiningMonth = (tenantData.joiningDate || '').slice(0, 7)
   const newTenant = {
     id: tenantId,
     name: tenantData.name,
     contact: tenantData.contact,
+    notes: tenantData.notes || '',
     rent: Number(tenantData.rent),
     deposit: Number(tenantData.deposit),
     cautionDeposit: Number(tenantData.cautionDeposit),
     joiningDate: tenantData.joiningDate,
     rentHistory: {},
+    rentChanges: joiningMonth ? [{ from: joiningMonth, amount: Number(tenantData.rent) }] : [],
     depositPaid: false,
     cautionDepositPaid: false,
     active: true,

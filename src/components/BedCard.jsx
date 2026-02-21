@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatCurrency, formatDate, formatMonth, currentMonthKey } from '../utils/dateUtils.js'
+import { formatCurrency, formatDate, formatMonth, currentMonthKey, getRentForMonth } from '../utils/dateUtils.js'
 import RentHistoryModal from './RentHistoryModal.jsx'
 
 // ── Shared field row ────────────────────────────────────────────────────────
@@ -56,6 +56,7 @@ function DepositPill({ label, paid, onToggle }) {
 function ThisMonthRent({ tenant, onUpdate }) {
   const thisMonth = currentMonthKey()
   const paid = !!(tenant.rentHistory || {})[thisMonth]
+  const amount = getRentForMonth(tenant, thisMonth)
 
   function toggle() {
     onUpdate({
@@ -77,7 +78,7 @@ function ThisMonthRent({ tenant, onUpdate }) {
     >
       <span>{paid ? '✓' : '○'} {formatMonth(thisMonth)}</span>
       <span className="text-xs font-medium opacity-70">
-        {paid ? 'Rent paid' : 'Tap to mark paid'}
+        {paid ? `${formatCurrency(amount)} paid` : `${formatCurrency(amount)} · tap to mark paid`}
       </span>
     </button>
   )

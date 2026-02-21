@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { currentMonthKey, formatMonth, formatCurrency, getMonthRange } from '../utils/dateUtils.js'
+import { currentMonthKey, formatMonth, formatCurrency, getMonthRange, getRentForMonth } from '../utils/dateUtils.js'
 
 const THIS_MONTH = currentMonthKey()
 
@@ -11,10 +11,11 @@ function getMonthStats(month, allTenants) {
     const joined = t.joiningDate && t.joiningDate.slice(0, 7) <= month
     const notVacated = !t.vacateDate || t.vacateDate.slice(0, 7) >= month
     if (joined && notVacated) {
+      const rent = getRentForMonth(t, month)
       total++
-      expected += t.rent || 0
+      expected += rent
       if ((t.rentHistory || {})[month]) {
-        collected += t.rent || 0
+        collected += rent
         paidCount++
       }
     }
@@ -40,8 +41,8 @@ function ThisMonthTab({ tenants, onUpdateTenant }) {
   const activeTenants = tenants.filter(t => t.active)
   const paidTenants = activeTenants.filter(t => (t.rentHistory || {})[THIS_MONTH])
   const unpaidTenants = activeTenants.filter(t => !(t.rentHistory || {})[THIS_MONTH])
-  const collected = paidTenants.reduce((s, t) => s + (t.rent || 0), 0)
-  const expected = activeTenants.reduce((s, t) => s + (t.rent || 0), 0)
+  const collected = paidTenants.reduce((s, t) => s + getRentForMonth(t, THIS_MONTH), 0)
+  const expected = activeTenants.reduce((s, t) => s + getRentForMonth(t, THIS_MONTH), 0)
 
   // Find room+bed label for tenant
   function getBedLabel(t) {
@@ -100,7 +101,7 @@ function ThisMonthTab({ tenants, onUpdateTenant }) {
                   <div className="text-xs text-gray-400 mt-0.5 truncate">{getBedLabel(t)}</div>
                 </div>
                 <div className={`text-sm font-bold shrink-0 ${paid ? 'text-green-700' : 'text-amber-600'}`}>
-                  {formatCurrency(t.rent)}
+                  {formatCurrency(getRentForMonth(t, THIS_MONTH))}
                 </div>
               </button>
             )

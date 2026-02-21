@@ -1,5 +1,5 @@
 import { FLOORS } from '../data/initialRooms.js'
-import { currentMonthKey, formatMonth, formatCurrency } from '../utils/dateUtils.js'
+import { currentMonthKey, formatMonth, formatCurrency, getRentForMonth } from '../utils/dateUtils.js'
 
 function GearIcon() {
   return (
@@ -88,7 +88,7 @@ export default function HomePage({ rooms, tenants, onRoomClick, onNewBooking, on
   const paidCount = activeTenants.filter(t => (t.rentHistory || {})[thisMonth]).length
   const thisMonthCollected = activeTenants
     .filter(t => (t.rentHistory || {})[thisMonth])
-    .reduce((s, t) => s + (t.rent || 0), 0)
+    .reduce((s, t) => s + getRentForMonth(t, thisMonth), 0)
 
   return (
     <div className="flex flex-col min-h-screen">
