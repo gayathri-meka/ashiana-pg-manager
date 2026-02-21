@@ -25,6 +25,9 @@ export function bookBed({ rooms, tenants, roomId, bedId, tenantData }) {
     depositPaid: false,
     cautionDepositPaid: false,
     active: true,
+    // Stored so we can reconstruct bed history even after vacating
+    roomId,
+    bedId,
   }
 
   const updatedRooms = rooms.map(room =>

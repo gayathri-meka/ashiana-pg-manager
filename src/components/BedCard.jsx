@@ -84,7 +84,7 @@ function ThisMonthRent({ tenant, onUpdate }) {
 }
 
 // ── Occupied bed — main view ────────────────────────────────────────────────
-function OccupiedBed({ bed, tenant, onVacate, onUpdateTenant }) {
+function OccupiedBed({ bed, tenant, allTenants, onVacate, onUpdateTenant }) {
   const [editing, setEditing] = useState(false)
   const [showRentHistory, setShowRentHistory] = useState(false)
 
@@ -244,6 +244,8 @@ function OccupiedBed({ bed, tenant, onVacate, onUpdateTenant }) {
       {showRentHistory && (
         <RentHistoryModal
           tenant={tenant}
+          bed={bed}
+          allTenants={allTenants}
           onUpdate={handleRentHistoryUpdate}
           onClose={() => setShowRentHistory(false)}
         />
@@ -264,6 +266,7 @@ export default function BedCard({ bed, tenants, onAddBooking, onVacate, onUpdate
     <OccupiedBed
       bed={bed}
       tenant={tenant}
+      allTenants={tenants}
       onVacate={onVacate}
       onUpdateTenant={onUpdateTenant}
     />
