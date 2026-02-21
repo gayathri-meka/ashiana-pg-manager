@@ -28,6 +28,7 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
   // Accordion open state
   const [adminOpen, setAdminOpen] = useState(false)
   const [bedDefaultsOpen, setBedDefaultsOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
 
   // Export
   const [exporting, setExporting] = useState(false)
@@ -336,35 +337,50 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
 
         {/* ── Export Data section ── */}
         <section className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-4 pt-4 pb-3 border-b border-gray-50">
-            <h2 className="text-sm font-bold text-gray-900">Export Data</h2>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Download everything as a spreadsheet — all tenants, payments, and history.
-            </p>
-          </div>
-          <div className="px-4 py-4 space-y-3">
-            <div className="flex items-start gap-3 text-xs text-gray-500 leading-relaxed">
-              <span className="text-lg leading-none mt-0.5">📋</span>
-              <span>
-                Includes <span className="font-semibold text-gray-700">{tenants.length} tenant{tenants.length !== 1 ? 's' : ''}</span> ({tenants.filter(t => t.active).length} active · {tenants.filter(t => !t.active).length} vacated) with full rent history. Opens in Excel or Google Sheets.
-              </span>
+          <button
+            onClick={() => setExportOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-4 active:bg-gray-50 transition-colors"
+          >
+            <div className="text-left">
+              <h2 className="text-sm font-bold text-gray-900">Export Data</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {exportOpen ? 'Download everything as a spreadsheet.' : `${tenants.length} tenant${tenants.length !== 1 ? 's' : ''} · full history`}
+              </p>
             </div>
-            <button
-              onClick={handleExport}
-              disabled={exporting || tenants.length === 0}
-              className="w-full text-white font-semibold py-3 rounded-2xl text-sm disabled:opacity-40 active:opacity-80 transition-opacity flex items-center justify-center gap-2"
-              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className={`text-gray-400 shrink-0 transition-transform ${exportOpen ? 'rotate-180' : ''}`}
             >
-              {exporting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Preparing…
-                </>
-              ) : (
-                'Download CSV'
-              )}
-            </button>
-          </div>
+              <polyline points="6,9 12,15 18,9" />
+            </svg>
+          </button>
+
+          {exportOpen && (
+            <div className="px-4 pb-4 pt-1 border-t border-gray-50 space-y-3">
+              <div className="flex items-start gap-3 text-xs text-gray-500 leading-relaxed pt-2">
+                <span className="text-lg leading-none mt-0.5">📋</span>
+                <span>
+                  Includes <span className="font-semibold text-gray-700">{tenants.length} tenant{tenants.length !== 1 ? 's' : ''}</span> ({tenants.filter(t => t.active).length} active · {tenants.filter(t => !t.active).length} vacated) with full rent history. Opens in Excel or Google Sheets.
+                </span>
+              </div>
+              <button
+                onClick={handleExport}
+                disabled={exporting || tenants.length === 0}
+                className="w-full text-white font-semibold py-3 rounded-2xl text-sm disabled:opacity-40 active:opacity-80 transition-opacity flex items-center justify-center gap-2"
+                style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+              >
+                {exporting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Preparing…
+                  </>
+                ) : (
+                  'Download CSV'
+                )}
+              </button>
+            </div>
+          )}
         </section>
 
         {/* ── Account section ── */}
