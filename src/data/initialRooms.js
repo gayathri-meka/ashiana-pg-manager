@@ -25,7 +25,7 @@ function makeRoom(id, floor, totalBeds, opts = {}) {
 export const INITIAL_ROOMS = [
   // 1st Floor
   makeRoom('101', '1st Floor', 4),
-  makeRoom('102', '1st Floor', 2),
+  makeRoom('102', '1st Floor', 2, { bookableAsRoom: true }),
   makeRoom('103', '1st Floor', 2, { bookableAsRoom: true }),
 
   // 2nd Floor
@@ -37,9 +37,9 @@ export const INITIAL_ROOMS = [
   makeRoom('206', '2nd Floor', 2),
 
   // Backside
-  makeRoom('D1', 'Backside', 2),
+  makeRoom('D1', 'Backside', 2, { bookableAsRoom: true }),
   makeRoom('D2', 'Backside', 3),
-  makeRoom('D3', 'Backside', 2)
+  makeRoom('D3', 'Backside', 2, { bookableAsRoom: true })
 ]
 
 export const FLOORS = ['1st Floor', '2nd Floor', 'Backside']
