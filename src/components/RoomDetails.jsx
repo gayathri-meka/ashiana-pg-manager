@@ -408,7 +408,7 @@ export default function RoomDetails({ room, tenants, onBack, onAddBooking, onBoo
         {/* Book Room button — only when bookableAsRoom and all beds vacant */}
         {canBookRoom && (
           <button
-            onClick={onBookRoom}
+            onClick={() => onBookRoom(room.id)}
             className="w-full mb-5 text-white font-semibold py-3.5 rounded-2xl text-sm shadow-lg shadow-green-200 active:opacity-90 flex items-center justify-center gap-2"
             style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
           >
