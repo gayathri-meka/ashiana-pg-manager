@@ -5,7 +5,9 @@ import {
 import { db } from './firebase.js'
 import { useAuth } from './context/AuthContext.jsx'
 import {
-  bookBed, vacateBed, updateTenant,
+  bookBed, bookRoom as bookRoomService,
+  vacateBed, vacateRoom as vacateRoomService,
+  updateTenant,
   getLocalLegacyData, clearLocalLegacyData, INITIAL_ROOMS
 } from './services/dataService.js'
 
@@ -191,8 +193,10 @@ function AuthenticatedApp({ user }) {
   }
 
   // ── Data handlers ─────────────────────────────────────────────────────────
-  const handleBookBed = useCallback(async ({ roomId, bedId, tenantData }) => {
-    const { rooms: r, tenants: t } = bookBed({ rooms, tenants, roomId, bedId, tenantData })
+  const handleBookBed = useCallback(async ({ roomId, bedId, tenantData, bookRoom }) => {
+    const { rooms: r, tenants: t } = bookRoom
+      ? bookRoomService({ rooms, tenants, roomId, tenantData })
+      : bookBed({ rooms, tenants, roomId, bedId, tenantData })
     setRooms(r)
     setTenants(t)
     await saveToCloud(r, t)
@@ -200,6 +204,13 @@ function AuthenticatedApp({ user }) {
 
   const handleVacateBed = useCallback(async ({ roomId, bedId, vacateDate }) => {
     const { rooms: r, tenants: t } = vacateBed({ rooms, tenants, roomId, bedId, vacateDate })
+    setRooms(r)
+    setTenants(t)
+    await saveToCloud(r, t)
+  }, [rooms, tenants])
+
+  const handleVacateRoom = useCallback(async ({ roomId, vacateDate }) => {
+    const { rooms: r, tenants: t } = vacateRoomService({ rooms, tenants, roomId, vacateDate })
     setRooms(r)
     setTenants(t)
     await saveToCloud(r, t)
@@ -222,6 +233,11 @@ function AuthenticatedApp({ user }) {
   // ── Modal helpers ─────────────────────────────────────────────────────────
   const openNewBooking = useCallback(({ roomId = null, bedId = null } = {}) => {
     setPreselect({ roomId, bedId })
+    setShowNewBooking(true)
+  }, [])
+
+  const openRoomBooking = useCallback((roomId) => {
+    setPreselect({ roomId, bedId: null, bookRoom: true })
     setShowNewBooking(true)
   }, [])
 
@@ -268,6 +284,8 @@ function AuthenticatedApp({ user }) {
             onAddBooking={(bedId) => openNewBooking({ roomId: currentRoom, bedId })}
             onVacate={(bedId) => openVacate({ roomId: currentRoom, bedId })}
             onUpdateTenant={handleUpdateTenant}
+            onBookRoom={openRoomBooking}
+            onVacateRoom={handleVacateRoom}
           />
         ) : (
           <HomePage

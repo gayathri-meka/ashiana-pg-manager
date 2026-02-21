@@ -45,6 +45,56 @@ export function bookBed({ rooms, tenants, roomId, bedId, tenantData }) {
   return { rooms: updatedRooms, tenants: [...tenants, newTenant] }
 }
 
+/** Book all beds in a room to one tenant. Returns { rooms, tenants }. */
+export function bookRoom({ rooms, tenants, roomId, tenantData }) {
+  const tenantId = generateId()
+  const joiningMonth = (tenantData.joiningDate || '').slice(0, 7)
+  const newTenant = {
+    id: tenantId,
+    name: tenantData.name,
+    contact: tenantData.contact,
+    notes: tenantData.notes || '',
+    rent: Number(tenantData.rent),
+    deposit: Number(tenantData.deposit),
+    cautionDeposit: Number(tenantData.cautionDeposit),
+    joiningDate: tenantData.joiningDate,
+    rentHistory: {},
+    rentChanges: joiningMonth ? [{ from: joiningMonth, amount: Number(tenantData.rent) }] : [],
+    depositPaid: false,
+    cautionDepositPaid: false,
+    active: true,
+    roomBooked: true,
+    roomId,
+    bedId: null,
+  }
+  const updatedRooms = rooms.map(r =>
+    r.id !== roomId ? r : {
+      ...r,
+      beds: r.beds.map(bed => ({ ...bed, occupied: true, tenantId }))
+    }
+  )
+  return { rooms: updatedRooms, tenants: [...tenants, newTenant] }
+}
+
+/** Vacate all beds in a room-booked room. Returns { rooms, tenants }. */
+export function vacateRoom({ rooms, tenants, roomId, vacateDate }) {
+  const room = rooms.find(r => r.id === roomId)
+  if (!room) return { rooms, tenants }
+  const tenantId = room.beds.find(b => b.occupied)?.tenantId
+  if (!tenantId) return { rooms, tenants }
+  const resolvedDate = vacateDate || new Date().toISOString().split('T')[0]
+  const updatedRooms = rooms.map(r =>
+    r.id !== roomId ? r : {
+      ...r,
+      beds: r.beds.map(b => ({ ...b, occupied: false, tenantId: null }))
+    }
+  )
+  const updatedTenants = tenants.map(t =>
+    t.id === tenantId ? { ...t, active: false, vacateDate: resolvedDate } : t
+  )
+  return { rooms: updatedRooms, tenants: updatedTenants }
+}
+
 /** Vacate a bed: mark tenant inactive, clear bed. Returns { rooms, tenants }. */
 export function vacateBed({ rooms, tenants, roomId, bedId, vacateDate }) {
   const room = rooms.find(r => r.id === roomId)

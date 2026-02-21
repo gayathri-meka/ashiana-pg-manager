@@ -11,6 +11,7 @@ const EMPTY_FORM = {
 }
 
 export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
+  const isRoomBooking = !!preselect.bookRoom
   const [selectedRoom, setSelectedRoom] = useState(preselect.roomId || '')
   const [selectedBed, setSelectedBed] = useState(preselect.bedId || '')
   const [form, setForm] = useState(EMPTY_FORM)
@@ -35,10 +36,10 @@ export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
     e.preventDefault()
     setError('')
     if (!selectedRoom) return setError('Please select a room.')
-    if (!selectedBed) return setError('Please select a bed.')
+    if (!isRoomBooking && !selectedBed) return setError('Please select a bed.')
     if (!form.name.trim()) return setError('Name is required.')
     if (!form.joiningDate) return setError('Joining date is required.')
-    onBook({ roomId: selectedRoom, bedId: selectedBed, tenantData: form })
+    onBook({ roomId: selectedRoom, bedId: isRoomBooking ? null : selectedBed, tenantData: form, bookRoom: isRoomBooking })
     onClose()
   }
 
@@ -53,7 +54,16 @@ export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
 
         {/* Header */}
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between shrink-0">
-          <h2 className="text-[17px] font-bold">New Booking</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-[17px] font-bold">
+              {isRoomBooking ? `Book Room ${selectedRoom}` : 'New Booking'}
+            </h2>
+            {isRoomBooking && (
+              <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+                Entire Room
+              </span>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 active:bg-gray-200 text-sm"
@@ -65,41 +75,47 @@ export default function NewBookingModal({ rooms, preselect, onBook, onClose }) {
         {/* Scrollable form */}
         <form onSubmit={handleSubmit} className="overflow-y-auto scroll-hidden flex-1 px-5 py-4 space-y-4">
 
-          <div>
-            <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Room *</label>
-            <select
-              value={selectedRoom}
-              onChange={e => setSelectedRoom(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
-            >
-              <option value="">Select room…</option>
-              {rooms.map(r => {
-                const empty = r.beds.filter(b => !b.occupied).length
-                return (
-                  <option key={r.id} value={r.id} disabled={empty === 0}>
-                    Room {r.id} — {r.floor} ({empty} available)
-                  </option>
-                )
-              })}
-            </select>
-          </div>
+          {/* Room selector — hidden in room booking mode (pre-filled) */}
+          {!isRoomBooking && (
+            <div>
+              <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Room *</label>
+              <select
+                value={selectedRoom}
+                onChange={e => setSelectedRoom(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+              >
+                <option value="">Select room…</option>
+                {rooms.map(r => {
+                  const empty = r.beds.filter(b => !b.occupied).length
+                  return (
+                    <option key={r.id} value={r.id} disabled={empty === 0}>
+                      Room {r.id} — {r.floor} ({empty} available)
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+          )}
 
-          <div>
-            <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Bed *</label>
-            <select
-              value={selectedBed}
-              onChange={e => setSelectedBed(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 disabled:opacity-40"
-              disabled={!selectedRoom || emptyBeds.length === 0}
-            >
-              <option value="">Select bed…</option>
-              {emptyBeds.map(b => (
-                <option key={b.id} value={b.id}>
-                  Bed {b.id.split('-').pop()}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Bed selector — hidden in room booking mode */}
+          {!isRoomBooking && (
+            <div>
+              <label className="text-xs text-gray-500 block mb-1.5 font-semibold uppercase tracking-wide">Bed *</label>
+              <select
+                value={selectedBed}
+                onChange={e => setSelectedBed(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3.5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50 disabled:opacity-40"
+                disabled={!selectedRoom || emptyBeds.length === 0}
+              >
+                <option value="">Select bed…</option>
+                {emptyBeds.map(b => (
+                  <option key={b.id} value={b.id}>
+                    Bed {b.id.split('-').pop()}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="border-t border-gray-100 pt-2">

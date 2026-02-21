@@ -12,11 +12,12 @@ function generateBeds(roomId, totalBeds) {
   }))
 }
 
-function makeRoom(id, floor, totalBeds) {
+function makeRoom(id, floor, totalBeds, opts = {}) {
   return {
     id,
     floor,
     totalBeds,
+    bookableAsRoom: opts.bookableAsRoom || false,
     beds: generateBeds(id, totalBeds)
   }
 }
@@ -25,7 +26,7 @@ export const INITIAL_ROOMS = [
   // 1st Floor
   makeRoom('101', '1st Floor', 4),
   makeRoom('102', '1st Floor', 2),
-  makeRoom('103', '1st Floor', 2),
+  makeRoom('103', '1st Floor', 2, { bookableAsRoom: true }),
 
   // 2nd Floor
   makeRoom('201', '2nd Floor', 1),
