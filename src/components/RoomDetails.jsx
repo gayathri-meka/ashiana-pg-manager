@@ -380,9 +380,9 @@ export default function RoomDetails({ room, tenants, onBack, onAddBooking, onBoo
       >
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-white/70 text-sm mb-5 active:text-white transition-colors"
+          className="flex items-center gap-1.5 bg-white/20 text-white text-sm font-semibold px-3.5 py-2 rounded-full mb-5 active:bg-white/35 transition-colors"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15,18 9,12 15,6" />
           </svg>
@@ -448,6 +448,42 @@ export default function RoomDetails({ room, tenants, onBack, onAddBooking, onBoo
             ))
           )}
         </div>
+
+        {/* Past Tenants */}
+        <PastTenantsSection room={room} tenants={tenants} />
+      </div>
+    </div>
+  )
+}
+
+function PastTenantsSection({ room, tenants }) {
+  const past = tenants.filter(t => t.roomId === room.id && t.vacateDate)
+    .sort((a, b) => b.vacateDate.localeCompare(a.vacateDate))
+
+  if (past.length === 0) return null
+
+  return (
+    <div className="mt-8">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400 mb-3 px-0.5">
+        Past Tenants
+      </h2>
+      <div className="space-y-2">
+        {past.map(t => (
+          <div key={t.id} className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-gray-800 truncate">{t.name}</div>
+              <div className="text-xs text-gray-400 mt-0.5">
+                {formatDate(t.joiningDate)} → {formatDate(t.vacateDate)}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-sm font-bold text-gray-500">{formatCurrency(t.rent)}<span className="text-xs font-normal">/mo</span></div>
+              {t.bedId && (
+                <div className="text-[10px] text-gray-300 mt-0.5">Bed {t.bedId.split('-').pop()}</div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

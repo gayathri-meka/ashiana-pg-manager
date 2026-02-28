@@ -38,7 +38,7 @@ export const INITIAL_ROOMS = [
 
   // Backside
   makeRoom('D1', 'Backside', 2, { bookableAsRoom: true }),
-  makeRoom('D2', 'Backside', 3),
+  makeRoom('D2', 'Backside', 3, { bookableAsRoom: true }),
   makeRoom('D3', 'Backside', 2, { bookableAsRoom: true })
 ]
 

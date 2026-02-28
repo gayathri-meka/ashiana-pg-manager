@@ -84,9 +84,14 @@ export default function HomePage({ rooms, tenants, onRoomClick, onNewBooking, on
   const vacantBeds = totalBeds - occupiedBeds
 
   const thisMonth = currentMonthKey()
-  const activeTenants = (tenants || []).filter(t => t.active)
-  const paidCount = activeTenants.filter(t => (t.rentHistory || {})[thisMonth]).length
-  const thisMonthCollected = activeTenants
+  // Include tenants who were active this month (joined before month end, not vacated before month start)
+  const thisMonthTenants = (tenants || []).filter(t => {
+    const joined = t.joiningDate && t.joiningDate.slice(0, 7) <= thisMonth
+    const notVacated = !t.vacateDate || t.vacateDate.slice(0, 7) >= thisMonth
+    return joined && notVacated
+  })
+  const paidCount = thisMonthTenants.filter(t => (t.rentHistory || {})[thisMonth]).length
+  const thisMonthCollected = thisMonthTenants
     .filter(t => (t.rentHistory || {})[thisMonth])
     .reduce((s, t) => s + getRentForMonth(t, thisMonth), 0)
 
@@ -129,7 +134,7 @@ export default function HomePage({ rooms, tenants, onRoomClick, onNewBooking, on
               {formatMonth(thisMonth)} · Collections
             </p>
             <p className="text-xl font-bold text-white">{formatCurrency(thisMonthCollected)}</p>
-            <p className="text-xs text-green-200">{paidCount} of {activeTenants.length} paid</p>
+            <p className="text-xs text-green-200">{paidCount} of {thisMonthTenants.length} paid</p>
           </div>
           <button
             onClick={onCollections}
