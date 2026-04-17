@@ -1,90 +1,23 @@
 const { onSchedule } = require('firebase-functions/v2/scheduler')
+const { onRequest } = require('firebase-functions/v2/https')
 const { defineSecret } = require('firebase-functions/params')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore, FieldValue } = require('firebase-admin/firestore')
 const logger = require('firebase-functions/logger')
 
+const {
+  istDateParts,
+  formatMonthLong,
+  computeUnpaidForMonth,
+  buildMessage,
+  sendTelegram,
+} = require('./lib')
+
 initializeApp()
 const db = getFirestore()
 
 const TELEGRAM_BOT_TOKEN = defineSecret('TELEGRAM_BOT_TOKEN')
-
-function pad2(n) { return String(n).padStart(2, '0') }
-
-function formatINR(amount) {
-  return '₹' + Number(amount || 0).toLocaleString('en-IN')
-}
-
-function istDateParts(now = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Kolkata',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }).formatToParts(now)
-  const year = Number(parts.find(p => p.type === 'year').value)
-  const month = Number(parts.find(p => p.type === 'month').value)
-  const day = Number(parts.find(p => p.type === 'day').value)
-  const monthKey = `${year}-${pad2(month)}`
-  const dateKey = `${monthKey}-${pad2(day)}`
-  const lastDay = new Date(year, month, 0).getDate()
-  return { year, month, day, monthKey, dateKey, lastDay }
-}
-
-function formatMonthLong(year, month) {
-  return new Date(year, month - 1, 1).toLocaleDateString('en-IN', {
-    month: 'long', year: 'numeric',
-  })
-}
-
-function getRentForMonth(tenant, month) {
-  const changes = tenant.rentChanges
-  if (!changes || changes.length === 0) return tenant.rent || 0
-  let amount = tenant.rent || 0
-  for (const rc of changes) {
-    if (rc.from <= month) amount = rc.amount
-  }
-  return amount
-}
-
-function isLiableForMonth(tenant, monthKey) {
-  const joiningMonth = (tenant.joiningDate || '').slice(0, 7)
-  if (!joiningMonth || joiningMonth > monthKey) return false
-  if (tenant.active) return true
-  const vacateMonth = (tenant.vacateDate || '').slice(0, 7)
-  return vacateMonth && vacateMonth >= monthKey
-}
-
-async function sendTelegram(token, chatId, text) {
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  })
-  if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Telegram ${res.status}: ${body}`)
-  }
-}
-
-function buildMessage({ monthLabel, unpaid, totalExpected, totalCollected }) {
-  if (unpaid.length === 0) {
-    return [
-      `Ashiana Rent Reminder — ${monthLabel}`,
-      '',
-      'All tenants paid this month. ✅',
-      '',
-      `Collected: ${formatINR(totalCollected)} / ${formatINR(totalExpected)}`,
-    ].join('\n')
-  }
-  const lines = unpaid.map(u => `- Room ${u.roomId} — ${u.name} — ${formatINR(u.amount)}`)
-  return [
-    `Ashiana Rent Reminder — ${monthLabel}`,
-    '',
-    `Pending payments (${unpaid.length}):`,
-    ...lines,
-    '',
-    `Collected: ${formatINR(totalCollected)} / ${formatINR(totalExpected)}`,
-  ].join('\n')
-}
+const TELEGRAM_WEBHOOK_SECRET = defineSecret('TELEGRAM_WEBHOOK_SECRET')
 
 exports.notifyUnpaidRent = onSchedule(
   {
@@ -96,7 +29,6 @@ exports.notifyUnpaidRent = onSchedule(
   async () => {
     const { year, month, day, monthKey, dateKey, lastDay } = istDateParts()
 
-    // Only run on the last 3 days of the month
     if (day < lastDay - 2) {
       logger.info(`Skip: day ${day} is not in last 3 days (lastDay=${lastDay})`)
       return
@@ -122,23 +54,7 @@ exports.notifyUnpaidRent = onSchedule(
     }
     const { tenants = [] } = pgSnap.data()
 
-    let totalExpected = 0
-    let totalCollected = 0
-    const unpaid = []
-
-    for (const t of tenants) {
-      if (!isLiableForMonth(t, monthKey)) continue
-      const due = getRentForMonth(t, monthKey)
-      totalExpected += due
-      const paid = !!(t.rentHistory || {})[monthKey]
-      if (paid) {
-        totalCollected += due
-      } else {
-        unpaid.push({ name: t.name, roomId: t.roomId, amount: due })
-      }
-    }
-
-    unpaid.sort((a, b) => String(a.roomId).localeCompare(String(b.roomId), 'en'))
+    const { unpaid, totalExpected, totalCollected } = computeUnpaidForMonth(tenants, monthKey)
 
     const adminsSnap = await db.collection('admins').get()
     const chatIds = adminsSnap.docs
@@ -176,5 +92,84 @@ exports.notifyUnpaidRent = onSchedule(
       `Sent to ${results.length - failed.length}/${chatIds.length} admins. ` +
       `Unpaid=${unpaid.length}. Completed=${unpaid.length === 0}`
     )
+  }
+)
+
+exports.telegramWebhook = onRequest(
+  {
+    region: 'asia-south1',
+    secrets: [TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET],
+    cors: false,
+    invoker: 'public',
+  },
+  async (req, res) => {
+    // Verify Telegram's secret token header
+    const expected = TELEGRAM_WEBHOOK_SECRET.value()
+    const received = req.get('X-Telegram-Bot-Api-Secret-Token')
+    if (!expected || received !== expected) {
+      logger.warn('Webhook called without valid secret token')
+      res.status(401).send('unauthorized')
+      return
+    }
+
+    const update = req.body || {}
+    const msg = update.message || update.edited_message
+    const chatId = msg?.chat?.id
+    const rawText = msg?.text
+
+    if (!chatId || !rawText) {
+      res.status(200).send('ok')
+      return
+    }
+
+    const chatIdStr = String(chatId)
+    // Strip @botname suffix that appears in group chats: "/pending@ashiana_bot"
+    const text = rawText.split('@')[0].trim().toLowerCase()
+    const token = TELEGRAM_BOT_TOKEN.value()
+
+    try {
+      const adminsSnap = await db
+        .collection('admins')
+        .where('telegramChatId', '==', chatIdStr)
+        .get()
+      const isAuthorized = !adminsSnap.empty
+
+      if (text === '/start') {
+        const greeting = isAuthorized
+          ? [
+              '👋 Welcome to Ashiana Rent Reminder.',
+              '',
+              'Available commands:',
+              '/pending — unpaid tenants for this month',
+            ].join('\n')
+          : [
+              '👋 This bot sends rent reminders to Ashiana admins.',
+              '',
+              `Your Telegram chat ID is ${chatIdStr}. Ask an admin to link it in the app's Settings → Admins.`,
+            ].join('\n')
+        await sendTelegram(token, chatIdStr, greeting)
+      } else if (text === '/pending') {
+        if (!isAuthorized) {
+          await sendTelegram(token, chatIdStr, 'Not authorized.')
+        } else {
+          const pgSnap = await db.doc('pgData/main').get()
+          const tenants = pgSnap.exists ? (pgSnap.data().tenants || []) : []
+          const { monthKey, year, month } = istDateParts()
+          const result = computeUnpaidForMonth(tenants, monthKey)
+          const body = buildMessage({
+            monthLabel: formatMonthLong(year, month),
+            ...result,
+          })
+          await sendTelegram(token, chatIdStr, body)
+        }
+      } else if (isAuthorized) {
+        await sendTelegram(token, chatIdStr, 'Unknown command. Try /pending')
+      }
+      // Unauthorized users sending non-/start commands: ignore silently
+    } catch (err) {
+      logger.error('Webhook handler failed', err)
+    }
+
+    res.status(200).send('ok')
   }
 )
