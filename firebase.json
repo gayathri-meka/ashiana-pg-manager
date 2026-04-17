@@ -13,6 +13,9 @@
       ]
     }
   ],
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "site": "ashiana-pg",
     "public": "dist",

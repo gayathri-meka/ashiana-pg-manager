@@ -29,6 +29,7 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
   const [editingTelegramEmail, setEditingTelegramEmail] = useState(null)
   const [telegramInput, setTelegramInput] = useState('')
   const [savingTelegram, setSavingTelegram] = useState(false)
+  const [telegramError, setTelegramError] = useState('')
 
   // Accordion open state
   const [adminOpen, setAdminOpen] = useState(false)
@@ -132,24 +133,30 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
   function startEditTelegram(admin) {
     setEditingTelegramEmail(admin.email)
     setTelegramInput(admin.telegramChatId || '')
+    setTelegramError('')
   }
 
   function cancelEditTelegram() {
     setEditingTelegramEmail(null)
     setTelegramInput('')
+    setTelegramError('')
   }
 
   async function saveTelegram(email) {
     const value = telegramInput.trim()
     setSavingTelegram(true)
+    setTelegramError('')
     try {
-      await updateDoc(doc(db, 'admins', email), {
-        telegramChatId: value || null,
-      })
+      await setDoc(
+        doc(db, 'admins', email),
+        { telegramChatId: value || null },
+        { merge: true }
+      )
       setEditingTelegramEmail(null)
       setTelegramInput('')
-    } catch {
-      // silently fail, listener will re-sync
+    } catch (err) {
+      console.error('Failed to save Telegram chat ID:', err)
+      setTelegramError(err?.code || err?.message || 'Save failed')
     } finally {
       setSavingTelegram(false)
     }
@@ -266,31 +273,36 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
                         {/* Telegram chat ID row */}
                         <div className="mt-2 ml-12">
                           {isEditingTg ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                value={telegramInput}
-                                onChange={e => setTelegramInput(e.target.value)}
-                                placeholder="e.g. 123456789"
-                                className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => saveTelegram(admin.email)}
-                                disabled={savingTelegram}
-                                className="shrink-0 text-xs text-white font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 active:opacity-80"
-                                style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
-                              >
-                                {savingTelegram ? '…' : 'Save'}
-                              </button>
-                              <button
-                                onClick={cancelEditTelegram}
-                                disabled={savingTelegram}
-                                className="shrink-0 text-xs text-gray-500 font-semibold px-2 py-1.5 active:text-gray-700"
-                              >
-                                Cancel
-                              </button>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={telegramInput}
+                                  onChange={e => { setTelegramInput(e.target.value); setTelegramError('') }}
+                                  placeholder="e.g. 123456789"
+                                  className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => saveTelegram(admin.email)}
+                                  disabled={savingTelegram}
+                                  className="shrink-0 text-xs text-white font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 active:opacity-80"
+                                  style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+                                >
+                                  {savingTelegram ? '…' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={cancelEditTelegram}
+                                  disabled={savingTelegram}
+                                  className="shrink-0 text-xs text-gray-500 font-semibold px-2 py-1.5 active:text-gray-700"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                              {telegramError && (
+                                <p className="text-red-500 text-xs mt-1">{telegramError}</p>
+                              )}
                             </div>
                           ) : (
                             <button
