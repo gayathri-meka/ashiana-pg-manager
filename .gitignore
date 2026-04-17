@@ -22,3 +22,11 @@ npm-debug.log*
 
 # Claude Code
 .claude/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+functions/node_modules/
+functions/.env
+functions/*.log

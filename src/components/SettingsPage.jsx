@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp
+  collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -24,6 +24,11 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState('')
   const [removingEmail, setRemovingEmail] = useState(null)
+
+  // Telegram chat ID inline editing
+  const [editingTelegramEmail, setEditingTelegramEmail] = useState(null)
+  const [telegramInput, setTelegramInput] = useState('')
+  const [savingTelegram, setSavingTelegram] = useState(false)
 
   // Accordion open state
   const [adminOpen, setAdminOpen] = useState(false)
@@ -124,6 +129,32 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
     }
   }
 
+  function startEditTelegram(admin) {
+    setEditingTelegramEmail(admin.email)
+    setTelegramInput(admin.telegramChatId || '')
+  }
+
+  function cancelEditTelegram() {
+    setEditingTelegramEmail(null)
+    setTelegramInput('')
+  }
+
+  async function saveTelegram(email) {
+    const value = telegramInput.trim()
+    setSavingTelegram(true)
+    try {
+      await updateDoc(doc(db, 'admins', email), {
+        telegramChatId: value || null,
+      })
+      setEditingTelegramEmail(null)
+      setTelegramInput('')
+    } catch {
+      // silently fail, listener will re-sync
+    } finally {
+      setSavingTelegram(false)
+    }
+  }
+
   async function handleRemove(email) {
     if (email === user.email) return
     if (admins.length <= 1) return
@@ -195,43 +226,99 @@ export default function SettingsPage({ onBack, rooms = [], tenants = [], onUpdat
                     const isSelf = admin.email === user.email
                     const isLast = admins.length === 1
                     const isRemoving = removingEmail === admin.email
+                    const isEditingTg = editingTelegramEmail === admin.email
+                    const hasTg = !!admin.telegramChatId
                     return (
-                      <div key={admin.email} className="flex items-center gap-3 px-4 py-3.5">
-                        <Avatar email={admin.email} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-gray-800 truncate">
-                              {admin.email}
-                            </span>
-                            {isSelf && (
-                              <span className="shrink-0 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
-                                You
+                      <div key={admin.email} className="px-4 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <Avatar email={admin.email} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-gray-800 truncate">
+                                {admin.email}
                               </span>
-                            )}
+                              {isSelf && (
+                                <span className="shrink-0 text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+                                  You
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-0.5">
+                              {admin.addedAt
+                                ? `Added ${formatDate(new Date(admin.addedAt.seconds * 1000).toISOString())}`
+                                : 'Initial admin'}
+                              {admin.addedBy && admin.addedBy !== admin.email && (
+                                <span> by {admin.addedBy.split('@')[0]}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-400 mt-0.5">
-                            {admin.addedAt
-                              ? `Added ${formatDate(new Date(admin.addedAt.seconds * 1000).toISOString())}`
-                              : 'Initial admin'}
-                            {admin.addedBy && admin.addedBy !== admin.email && (
-                              <span> by {admin.addedBy.split('@')[0]}</span>
-                            )}
-                          </div>
+                          {!isSelf && !isLast && (
+                            <button
+                              onClick={() => handleRemove(admin.email)}
+                              disabled={isRemoving}
+                              className="shrink-0 text-xs text-red-400 font-semibold px-3 py-1.5 bg-red-50 rounded-lg active:bg-red-100 disabled:opacity-40"
+                            >
+                              {isRemoving ? '…' : 'Remove'}
+                            </button>
+                          )}
                         </div>
-                        {!isSelf && !isLast && (
-                          <button
-                            onClick={() => handleRemove(admin.email)}
-                            disabled={isRemoving}
-                            className="shrink-0 text-xs text-red-400 font-semibold px-3 py-1.5 bg-red-50 rounded-lg active:bg-red-100 disabled:opacity-40"
-                          >
-                            {isRemoving ? '…' : 'Remove'}
-                          </button>
-                        )}
+
+                        {/* Telegram chat ID row */}
+                        <div className="mt-2 ml-12">
+                          {isEditingTg ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                value={telegramInput}
+                                onChange={e => setTelegramInput(e.target.value)}
+                                placeholder="e.g. 123456789"
+                                className="flex-1 min-w-0 border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-green-500 bg-gray-50"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => saveTelegram(admin.email)}
+                                disabled={savingTelegram}
+                                className="shrink-0 text-xs text-white font-semibold px-3 py-1.5 rounded-lg disabled:opacity-40 active:opacity-80"
+                                style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}
+                              >
+                                {savingTelegram ? '…' : 'Save'}
+                              </button>
+                              <button
+                                onClick={cancelEditTelegram}
+                                disabled={savingTelegram}
+                                className="shrink-0 text-xs text-gray-500 font-semibold px-2 py-1.5 active:text-gray-700"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => startEditTelegram(admin)}
+                              className="flex items-center gap-1.5 text-xs active:opacity-60"
+                            >
+                              <span className="text-gray-400">Telegram:</span>
+                              <span className={hasTg ? 'text-gray-700 font-medium' : 'text-gray-400 italic'}>
+                                {hasTg ? admin.telegramChatId : 'Not linked'}
+                              </span>
+                              <span className="text-green-600 font-semibold">
+                                {hasTg ? 'Edit' : 'Link'}
+                              </span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
               )}
+
+              {/* Telegram setup hint */}
+              <div className="px-4 py-2.5 bg-green-50/60 border-t border-gray-50">
+                <p className="text-[11px] text-green-800 leading-relaxed">
+                  💬 <span className="font-semibold">Rent reminders</span> are sent via Telegram on the last 3 days of each month. To link, message <span className="font-mono font-semibold">@userinfobot</span> on Telegram to get your chat ID, then start a chat with the Ashiana bot and paste the ID above.
+                </p>
+              </div>
 
               {/* Add admin form */}
               <div className="px-4 pb-4 pt-2 border-t border-gray-50">
